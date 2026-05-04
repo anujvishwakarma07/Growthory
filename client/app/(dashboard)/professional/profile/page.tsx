@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/auth';
 import Button from '@/components/ui/Button';
 import { FileText, CheckCircle2, Upload, Rocket, Briefcase, Zap, Sparkles, User, ArrowLeft, Award, TrendingUp } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -24,22 +24,27 @@ export default function ProfessionalProfile() {
         if (!file) return;
 
         setLoading(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const currentUser = auth.getUser();
 
-        if (!user) {
+        if (!currentUser) {
             setLoading(false);
+            router.push('/login');
             return;
         }
 
         const formData = new FormData();
         formData.append('resume', file);
-        formData.append('id', user.id);
+        formData.append('id', currentUser.id);
 
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+        const token = auth.getToken();
 
         try {
             const res = await fetch(`${API_URL}/professionals/upload-resume`, {
                 method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`
+                },
                 body: formData,
             });
             const data = await res.json();

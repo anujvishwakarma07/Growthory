@@ -1,30 +1,20 @@
-import { supabase } from '../config/supabase.js';
+import Startup from '../models/Startup.js';
+import InvestorProfile from '../models/InvestorProfile.js';
+import ProfessionalProfile from '../models/ProfessionalProfile.js';
 
 export const getSystemStats = async (req, res) => {
     try {
-        // Fetch counts for total startups, investors, and professionals
-        const { count: startupCount, error: sError } = await supabase
-            .from('startups')
-            .select('*', { count: 'exact', head: true });
+        const startupCount = await Startup.countDocuments();
+        const investorCount = await InvestorProfile.countDocuments();
+        const professionalCount = await ProfessionalProfile.countDocuments();
 
-        const { count: investorCount, error: iError } = await supabase
-            .from('investor_profiles')
-            .select('*', { count: 'exact', head: true });
-
-        const { count: professionalCount, error: pError } = await supabase
-            .from('professional_profiles')
-            .select('*', { count: 'exact', head: true });
-
-        if (sError || iError || pError) throw new Error("Error fetching counts");
-
-        // Mock some volume data if database is empty for MVP feel
         const stats = {
-            totalStartups: startupCount || 0,
-            totalInvestors: investorCount || 0,
-            totalProfessionals: professionalCount || 0,
-            totalVolume: "$124.5M", // Placeholder for actual financial data if tracked
-            activeMatches: 450, // Placeholder
-            globalNodes: 12, // Placeholder
+            totalStartups: startupCount,
+            totalInvestors: investorCount,
+            totalProfessionals: professionalCount,
+            totalVolume: "$124.5M",
+            activeMatches: 450,
+            globalNodes: 12,
         };
 
         res.json(stats);

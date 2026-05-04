@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -39,18 +39,14 @@ export default function NetworkPage() {
     const fetchPeople = async (query = '', role = 'all', userId = user?.id) => {
         setLoading(true);
         try {
+            const token = auth.getToken();
+            const headers: any = { 'Authorization': `Bearer ${token}` };
+
             let url = `${API_URL}/network/explore?role=${role === 'all' ? '' : role}&searchQuery=${query}`;
             if (userId) url += `&currentUserId=${userId}`;
-            console.log(`Fetching Network: ${url}`);
-            const res = await fetch(url);
-
-            const contentType = res.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const text = await res.text();
-                console.error("Network Page - Invalid JSON Response:", text.substring(0, 500)); // Log first 500 chars
-                throw new Error(`Expected JSON, got ${contentType}`);
-            }
-
+            
+            const res = await fetch(url, { headers });
+            if (!res.ok) throw new Error("Failed to fetch nodes");
             const data = await res.json();
             setPeople(Array.isArray(data) ? data : []);
         } catch (err: any) {
@@ -64,17 +60,11 @@ export default function NetworkPage() {
     const fetchConnections = async (userId: string) => {
         setLoading(true);
         try {
-            const url = `${API_URL}/network/my-network/${userId}`;
-            console.log(`Fetching Connections: ${url}`);
-            const res = await fetch(url);
-
-            const contentType = res.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const text = await res.text();
-                console.error("Network Page - Connections Invalid JSON:", text.substring(0, 500));
-                throw new Error(`Expected JSON, got ${contentType}`);
-            }
-
+            const token = auth.getToken();
+            const res = await fetch(`${API_URL}/network/my-network/${userId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error("Failed to load connections");
             const data = await res.json();
             setConnections(Array.isArray(data) ? data : []);
         } catch (err) {
@@ -88,17 +78,11 @@ export default function NetworkPage() {
     const fetchPendingRequests = async (userId: string) => {
         setLoading(true);
         try {
-            const url = `${API_URL}/network/pending-requests/${userId}`;
-            console.log(`Fetching Pending: ${url}`);
-            const res = await fetch(url);
-
-            const contentType = res.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                const text = await res.text();
-                console.error("Network Page - Pending Requests Invalid JSON:", text.substring(0, 500));
-                throw new Error(`Expected JSON, got ${contentType}`);
-            }
-
+            const token = auth.getToken();
+            const res = await fetch(`${API_URL}/network/pending-requests/${userId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) throw new Error("Failed to load pending requests");
             const data = await res.json();
             setPendingRequests(Array.isArray(data) ? data : []);
         } catch (err) {
@@ -111,13 +95,13 @@ export default function NetworkPage() {
 
     useEffect(() => {
         const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
+            const currentUser = auth.getUser();
+            if (!currentUser) {
                 router.push('/login');
                 return;
             }
-            setUser(session.user);
-            fetchPeople('', 'all', session.user.id);
+            setUser(currentUser);
+            fetchPeople('', 'all', currentUser.id);
         };
         checkUser();
     }, [router]);
@@ -138,9 +122,13 @@ export default function NetworkPage() {
         if (!user) return;
 
         try {
+            const token = auth.getToken();
             const res = await fetch(`${API_URL}/network/connect`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     source_id: user.id,
                     target_id: targetId,
@@ -151,8 +139,7 @@ export default function NetworkPage() {
             const data = await res.json();
             if (data.success) {
                 toast.success("Signal connection request transmitted.");
-                // Update local state to show pending or remove
-                setPeople(prev => prev.map(p => p.id === targetId ? { ...p, pending: true } : p));
+                setPeople(prev => prev.map(p => (p.id === targetId || p._id === targetId) ? { ...p, pending: true } : p));
             } else {
                 toast.error(data.error || "Failed to connect");
             }
@@ -163,16 +150,19 @@ export default function NetworkPage() {
 
     const handleRespondToRequest = async (matchId: string, action: 'accept' | 'reject') => {
         try {
+            const token = auth.getToken();
             const res = await fetch(`${API_URL}/network/respond/${matchId}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ action })
             });
 
             const data = await res.json();
             if (data.success) {
                 toast.success(action === 'accept' ? 'Connection accepted!' : 'Request rejected');
-                // Refresh pending requests
                 if (user) fetchPendingRequests(user.id);
             } else {
                 toast.error(data.error || "Failed to respond");
@@ -183,284 +173,255 @@ export default function NetworkPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#f8faf7] text-slate-800 pb-20 pt-24">
-            <div className="max-w-7xl mx-auto px-4 md:px-6">
-
-                {/* Header & Stats Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
-                    <div className="lg:col-span-8">
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Ecosystem Network</h1>
-                        <p className="text-slate-500 font-medium">Discover and connect with the most promising nodes in the Growthory ecosystem.</p>
-                    </div>
-                    <div className="lg:col-span-4 flex items-center justify-end gap-3">
-                        <div className="bg-white p-3 px-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3d522b]">Network Strength</span>
-                            <span className="text-xl font-black text-slate-900">4,821 <span className="text-xs text-green-500">+12%</span></span>
+        <div className="min-h-screen bg-[#f8faf7] text-slate-800 pt-28 pb-32 selection:bg-[#3d522b]/20">
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+                
+                {/* Abstract Header Deck */}
+                <div className="relative mb-12 bg-white rounded-[2.5rem] p-10 md:p-14 border border-slate-200 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+                    <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-[#3d522b]/[0.03] rounded-full blur-[80px] pointer-events-none"></div>
+                    <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-[#3d522b]/[0.02] rounded-full blur-[80px] pointer-events-none"></div>
+                    
+                    <div className="relative z-10 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-12">
+                        <div className="max-w-2xl">
+                            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-[#3d522b]/5 border border-[#3d522b]/10 text-[#3d522b] text-[10px] font-black uppercase tracking-[0.3em] mb-8">
+                                <div className="h-2 w-2 rounded-full bg-[#3d522b] animate-pulse shadow-[0_0_8px_rgba(61,82,43,0.5)]"></div>
+                                Live Intelligence Node
+                            </div>
+                            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-slate-900 leading-[0.9] mb-6">
+                                The <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3d522b] to-slate-900">Nexus</span>
+                            </h1>
+                            <p className="text-slate-500 font-medium text-lg lg:text-xl leading-relaxed max-w-lg">
+                                Global mapping of active ecosystem signals. Identify, query, and uplink with high-value assets securely.
+                            </p>
                         </div>
-                        <div className="bg-white p-3 px-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3d522b]">Active Nodes</span>
-                            <span className="text-xl font-black text-slate-900">1,204</span>
+                        
+                        {/* Terminal Search Block */}
+                        <div className="w-full xl:w-auto bg-slate-900 rounded-[2rem] p-8 shadow-2xl relative border border-slate-800">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-[#3d522b] to-emerald-500"></div>
+                            <div className="flex flex-col gap-6 relative z-10">
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none transition-transform group-focus-within:scale-110">
+                                        <Search className="h-5 w-5 text-emerald-400/50" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="INPUT QUERY_STRING..."
+                                        className="w-full xl:w-[400px] bg-slate-800/40 border border-slate-700/50 rounded-2xl py-4 pl-14 pr-4 text-sm font-mono text-emerald-400 placeholder:text-emerald-400/30 focus:outline-none focus:border-emerald-400/50 focus:bg-slate-800 transition-all uppercase shadow-inner"
+                                        value={searchQuery}
+                                        onChange={(e) => { setSearchQuery(e.target.value); fetchPeople(e.target.value, activeRole); }}
+                                    />
+                                    {/* Scanline effect */}
+                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-400/5 to-transparent h-[10px] w-full animate-[scan_3s_ease-in-out_infinite] opacity-50 pointer-events-none rounded-2xl"></div>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                     {[
+                                        { id: 'all', label: 'ALL_NODES' },
+                                        { id: 'founder', label: 'FOUNDER' },
+                                        { id: 'investor', label: 'CAPITAL' },
+                                        { id: 'professional', label: 'TALENT' }
+                                    ].map((r) => (
+                                        <button
+                                            key={r.id}
+                                            onClick={() => { setActiveRole(r.id); fetchPeople(searchQuery, r.id); }}
+                                            className={`px-4 py-3 rounded-xl text-[10px] font-mono uppercase tracking-widest transition-all ${activeRole === r.id ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-slate-800/80 border border-slate-700/50 text-slate-500 hover:text-emerald-400/70 hover:border-emerald-400/30'}`}
+                                        >
+                                            {r.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Main Content Area */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-                    {/* Left Filters - Sidebar Style */}
-                    <div className="lg:col-span-3 space-y-6">
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
-                                <Filter className="h-3 w-3" /> Filters
-                            </h3>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[#3d522b] block mb-2">Role Type</label>
-                                    <div className="space-y-1">
-                                        {[
-                                            { id: 'all', label: 'All Clusters', icon: Globe },
-                                            { id: 'founder', label: 'Founders', icon: Zap },
-                                            { id: 'investor', label: 'Investors', icon: TrendingUp },
-                                            { id: 'professional', label: 'Professionals', icon: Briefcase }
-                                        ].map((r) => (
-                                            <button
-                                                key={r.id}
-                                                onClick={() => { setActiveRole(r.id); fetchPeople(searchQuery, r.id); }}
-                                                className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all font-bold text-sm ${activeRole === r.id ? 'bg-[#3d522b] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
-                                            >
-                                                <r.icon className={`h-4 w-4 ${activeRole === r.id ? 'text-white' : 'text-slate-400'}`} />
-                                                {r.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="pt-4 border-t border-slate-100">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-[#3d522b] block mb-2">Location Signal</label>
-                                    <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#3d522b]/20">
-                                        <option>Global Network</option>
-                                        <option>Silicon Valley Hub</option>
-                                        <option>London Tech Node</option>
-                                        <option>Bangalore Ecosystem</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-[#3d522b] rounded-2xl p-6 text-white overflow-hidden relative group">
-                            <div className="relative z-10">
-                                <ShieldCheck className="h-8 w-8 mb-4 text-green-400" />
-                                <h4 className="text-lg font-bold mb-2">Premium Network</h4>
-                                <p className="text-sm text-green-100/80 mb-6 font-medium">Unlock verified investor signals and direct routing to tier-1 founders.</p>
-                                <Button className="w-full bg-white text-[#3d522b] hover:bg-green-50 rounded-xl font-black text-xs uppercase tracking-widest">
-                                    Upgrade Signal
-                                </Button>
-                            </div>
-                            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                                <NetworkIcon size={120} />
-                            </div>
-                        </div>
+                {/* Sub-navigation Deck */}
+                <div className="flex justify-center mb-12">
+                     <div className="inline-flex p-2 bg-white/50 backdrop-blur-md border border-slate-200/60 rounded-[2rem] shadow-[0_4px_20px_rgb(0,0,0,0.03)] relative z-20">
+                         {[
+                            { id: 'discover', label: 'Global Radar' },
+                            { id: 'connections', label: 'Active Uplinks' },
+                            { id: 'pending', label: 'Intercepts' }
+                        ].map(t => (
+                            <button
+                                key={t.id}
+                                onClick={() => setTab(t.id)}
+                                className={`px-6 md:px-10 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${tab === t.id ? 'bg-[#3d522b] text-white shadow-lg shadow-[#3d522b]/20 scale-100' : 'text-slate-400 hover:text-slate-900 hover:bg-white scale-95'}`}
+                            >
+                                {t.label}
+                            </button>
+                        ))}
                     </div>
+                </div>
 
-                    {/* Right Results Grid */}
-                    <div className="lg:col-span-9 space-y-6">
-                        {/* Search & Tabs */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-2 flex flex-col md:flex-row gap-2">
-                            <div className="flex-grow relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Search by name, expertise, or vision..."
-                                    className="w-full bg-transparent border-none focus:ring-0 pl-11 pr-4 py-3 text-sm font-medium"
-                                    value={searchQuery}
-                                    onChange={(e) => { setSearchQuery(e.target.value); fetchPeople(e.target.value, activeRole); }}
-                                />
+                {/* Main Data Render */}
+                <div className="relative min-h-[500px]">
+                    {loading ? (
+                         <div className="flex flex-col items-center justify-center py-40">
+                             <div className="relative h-32 w-32 mb-10">
+                                <div className="absolute inset-0 border-[6px] border-[#3d522b]/10 rounded-full"></div>
+                                <div className="absolute inset-0 border-[6px] border-[#3d522b] rounded-full border-t-transparent animate-[spin_1.5s_linear_infinite]"></div>
+                                <div className="absolute inset-4 border-[4px] border-[#3d522b]/20 rounded-full border-b-transparent animate-[spin_2s_linear_infinite_reverse]"></div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <NetworkIcon className="h-10 w-10 text-[#3d522b] opacity-80" />
+                                </div>
                             </div>
-                            <div className="flex p-1 bg-slate-50 rounded-xl">
-                                {[
-                                    { id: 'discover', label: 'Discover' },
-                                    { id: 'connections', label: 'Connections' },
-                                    { id: 'pending', label: 'Requests' }
-                                ].map(t => (
-                                    <button
-                                        key={t.id}
-                                        onClick={() => setTab(t.id)}
-                                        className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${tab === t.id ? 'bg-white shadow-sm text-[#3d522b]' : 'text-slate-400 hover:text-slate-600'}`}
-                                    >
-                                        {t.label}
-                                    </button>
-                                ))}
-                            </div>
+                            <p className="text-xs font-mono text-[#3d522b] uppercase tracking-[0.4em] animate-pulse">Establishing Node Sync...</p>
                         </div>
-
-                        {/* Content Feed - Changes based on tab */}
-                        {loading ? (
-                            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                                <Loader2 className="h-10 w-10 text-[#3d522b] animate-spin mb-4" />
-                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Scanning Ecosystem Nodes...</p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Discover Tab */}
-                                {tab === 'discover' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                        {people.length > 0 ? people.map((person) => (
-                                            <div key={person.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:border-[#3d522b]/30 transition-all group">
-                                                <div className="h-16 bg-slate-50 relative">
-                                                    <div className="absolute -bottom-8 left-6">
-                                                        <div className="h-16 w-16 rounded-2xl bg-white p-1 shadow-md border border-slate-100">
-                                                            <div className="h-full w-full rounded-xl bg-[#3d522b]/5 flex items-center justify-center text-xl font-black text-[#3d522b]">
-                                                                {person.full_name?.[0].toUpperCase()}
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                    ) : (
+                        <>
+                            {tab === 'discover' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                    {people.length > 0 ? people.map((person) => (
+                                        <div key={person.id} className="group relative bg-white border border-slate-200 rounded-[2rem] p-6 shadow-sm hover:shadow-2xl hover:shadow-[#3d522b]/10 hover:border-[#3d522b]/30 transition-all duration-500 flex flex-col h-full transform hover:-translate-y-1">
+                                            
+                                            <div className="flex items-start justify-between mb-8">
+                                                <div className="relative">
+                                                     <div className="h-16 w-16 rounded-[1.2rem] bg-slate-50 border border-slate-100 flex items-center justify-center text-xl font-black text-slate-900 group-hover:bg-[#3d522b] group-hover:text-white group-hover:border-[#3d522b] transition-all duration-500">
+                                                         {person.full_name?.[0].toUpperCase()}
+                                                     </div>
+                                                     {person.connected && (
+                                                         <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center text-white shadow-sm">
+                                                            <Check className="h-3 w-3" />
+                                                         </div>
+                                                     )}
                                                 </div>
-                                                <div className="p-6 pt-10">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div>
-                                                            <h3
-                                                                className="font-bold text-slate-900 group-hover:text-[#3d522b] transition-colors cursor-pointer hover:underline"
-                                                                onClick={() => router.push(`/profile/${person.id}`)}
-                                                            >
-                                                                {person.full_name}
-                                                            </h3>
-                                                            <p className="text-[10px] font-black text-[#3d522b] uppercase tracking-widest">{person.role}</p>
-                                                        </div>
-                                                    </div>
-                                                    <p className="text-xs text-slate-500 font-medium mb-6 line-clamp-2 h-8 italic">
-                                                        {person.details || 'Building the future of the ecosystem.'}
-                                                    </p>
-
-                                                    <div className="flex items-center gap-2 mb-6">
-                                                        <MapPin className="h-3 w-3 text-slate-400" />
-                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Remote Cluster</span>
-                                                    </div>
-
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            onClick={() => !person.connected && handleConnect(person.id, person.role)}
-                                                            variant={person.connected ? 'outline' : person.pending ? 'outline' : 'primary'}
-                                                            disabled={person.pending || person.connected}
-                                                            className={`flex-grow rounded-xl h-10 text-[10px] font-black uppercase tracking-widest py-0 ${person.connected ? 'border-[#3d522b]/30 text-[#3d522b] bg-[#3d522b]/5' : person.pending ? 'border-slate-200 text-slate-400' : 'bg-[#3d522b]'}`}
-                                                        >
-                                                            {person.connected ? 'Connected' : person.pending ? 'Request Sent' : (
-                                                                <span className="flex items-center justify-center gap-2">
-                                                                    <UserPlus className="h-3 w-3" /> Connect
-                                                                </span>
-                                                            )}
-                                                        </Button>
-                                                        <button className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-[#3d522b] hover:bg-[#3d522b]/5 transition-all">
-                                                            <ArrowUpRight className="h-4 w-4" />
-                                                        </button>
-                                                    </div>
+                                                <div className="text-right">
+                                                    <span className="inline-block px-3 py-1.5 bg-slate-50 border border-slate-100 text-slate-600 text-[8px] font-black uppercase tracking-[0.2em] rounded-lg">
+                                                        {person.role}
+                                                    </span>   
                                                 </div>
                                             </div>
-                                        )) : (
-                                            <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                                                <Users className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                                                <h3 className="text-lg font-bold text-slate-900 mb-2">No Nodes Isolated</h3>
-                                                <p className="text-slate-500 text-sm max-w-xs mx-auto">Try adjusting your filters or search signal to discover more nodes.</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
 
-                                {/* Pending Requests Tab */}
-                                {tab === 'pending' && (
-                                    <div className="space-y-4">
-                                        {pendingRequests.length > 0 ? pendingRequests.map((request) => (
-                                            <div key={request.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:border-[#3d522b]/30 transition-all">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="h-14 w-14 rounded-2xl bg-[#3d522b]/5 flex items-center justify-center text-lg font-black text-[#3d522b]">
+                                            <div className="flex-1 mb-8">
+                                                <h3 className="text-xl font-black text-slate-900 mb-2 truncate group-hover:text-[#3d522b] transition-colors cursor-pointer" onClick={() => router.push(`/profile/${person.id}`)}>
+                                                    {person.full_name}
+                                                </h3>
+                                                <p className="text-xs text-slate-500 font-medium leading-relaxed italic line-clamp-3">
+                                                    "{person.details || 'Awaiting structural details regarding current operations.'}"
+                                                </p>
+                                            </div>
+
+                                            <div className="mt-auto pt-6 border-t border-slate-100 flex items-center gap-2">
+                                                <Button
+                                                    onClick={() => !person.connected && handleConnect(person.id, person.role)}
+                                                    variant={person.connected ? 'outline' : person.pending ? 'outline' : 'primary'}
+                                                    disabled={person.pending || person.connected}
+                                                    className={`flex-grow rounded-xl h-11 text-[9px] font-black uppercase tracking-[0.2em] px-0 ${person.connected ? 'border-[#3d522b]/20 text-[#3d522b] bg-[#3d522b]/5' : person.pending ? 'border-amber-200 text-amber-600 bg-amber-50' : 'bg-[#3d522b] hover:bg-[#2d3f1f] text-white shadow-lg shadow-[#3d522b]/20'}`}
+                                                >
+                                                    {person.connected ? 'Uplink Established' : person.pending ? 'Signal Propagating...' : 'Connect'}
+                                                </Button>
+                                                <button 
+                                                    onClick={() => router.push(`/profile/${person.id}`)}
+                                                    className="h-11 w-11 flex-shrink-0 flex items-center justify-center rounded-xl border border-slate-200 text-slate-400 hover:text-white hover:border-[#3d522b] hover:bg-[#3d522b] transition-all"
+                                                >
+                                                    <ArrowUpRight className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )) : (
+                                        <div className="col-span-full bg-white rounded-[3rem] p-24 border border-slate-200 text-center shadow-sm max-w-4xl mx-auto w-full">
+                                            <div className="h-20 w-20 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-slate-100">
+                                                <Globe className="h-8 w-8 text-slate-300" />
+                                            </div>
+                                            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 mb-3">Void Sector</h2>
+                                            <p className="text-slate-500 font-medium md:text-lg mb-10 max-w-md mx-auto">No nodes match your current surveillance parameters. Re-calibrate your radar.</p>
+                                            <Button onClick={() => {setSearchQuery(''); setActiveRole('all'); fetchPeople('', 'all', user?.id)}} className="bg-[#3d522b] text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-[#10px]">Reset Parameters</Button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Pending & Connections tabs */}
+                             {(tab === 'pending' || tab === 'connections') && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+                                    {tab === 'pending' ? (
+                                        pendingRequests.length > 0 ? pendingRequests.map((request) => (
+                                            <div key={request.id} className="bg-white rounded-[2rem] border border-slate-200 p-6 xl:p-8 flex flex-col xl:flex-row items-center justify-between gap-6 hover:shadow-xl hover:border-[#3d522b]/20 transition-all duration-300">
+                                                <div className="flex items-center gap-5 text-center xl:text-left">
+                                                    <div className="h-16 w-16 rounded-[1.2rem] bg-[#3d522b] shadow-md shadow-[#3d522b]/20 flex items-center justify-center flex-shrink-0">
+                                                        <div className="text-2xl font-black text-white">
                                                             {request.from.full_name?.[0].toUpperCase()}
                                                         </div>
-                                                        <div>
-                                                            <h3 className="font-bold text-slate-900 mb-1">{request.from.full_name}</h3>
-                                                            <p className="text-[10px] font-black text-[#3d522b] uppercase tracking-widest">{request.from.role}</p>
-                                                            <p className="text-xs text-slate-400 mt-1">
-                                                                {new Date(request.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                            </p>
+                                                    </div>
+                                                    <div>
+                                                        <div className="inline-flex items-center gap-2 mb-2">
+                                                            <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping"></div>
+                                                            <span className="text-[9px] font-black text-amber-500 uppercase tracking-[0.2em]">Incoming Handshake</span>
                                                         </div>
+                                                        <h3 className="text-lg font-black text-slate-900 mb-1">{request.from.full_name}</h3>
+                                                        <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">{request.from.role}</p>
                                                     </div>
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            onClick={() => handleRespondToRequest(request.id, 'accept')}
-                                                            className="bg-[#3d522b] text-white hover:bg-[#2d3d20] rounded-xl px-6 h-10"
-                                                        >
-                                                            <Check className="h-4 w-4 mr-2" />
-                                                            Accept
-                                                        </Button>
-                                                        <Button
-                                                            onClick={() => handleRespondToRequest(request.id, 'reject')}
-                                                            variant="outline"
-                                                            className="border-red-200 text-red-500 hover:bg-red-50 rounded-xl px-6 h-10"
-                                                        >
-                                                            <X className="h-4 w-4 mr-2" />
-                                                            Reject
-                                                        </Button>
-                                                    </div>
+                                                </div>
+                                                <div className="flex flex-row gap-2 w-full xl:w-auto">
+                                                     <Button
+                                                        onClick={() => handleRespondToRequest(request.id, 'accept')}
+                                                        className="flex-1 xl:flex-none bg-[#3d522b] text-white hover:bg-[#2d3d20] rounded-xl px-5 h-12 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#3d522b]/20"
+                                                    >
+                                                        Accept
+                                                    </Button>
+                                                    <button
+                                                        onClick={() => handleRespondToRequest(request.id, 'reject')}
+                                                        className="flex items-center justify-center h-12 w-12 rounded-xl border border-slate-200 text-slate-400 hover:bg-slate-50 hover:text-red-500 transition-colors"
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </button>
                                                 </div>
                                             </div>
                                         )) : (
-                                            <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                                                <Users className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                                                <h3 className="text-lg font-bold text-slate-900 mb-2">No Pending Requests</h3>
-                                                <p className="text-slate-500 text-sm max-w-xs mx-auto">You don't have any connection requests at the moment.</p>
+                                            <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border border-slate-200 shadow-sm max-w-3xl mx-auto w-full">
+                                                <div className="h-20 w-20 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-slate-100">
+                                                    <Zap className="h-8 w-8 text-slate-300" />
+                                                </div>
+                                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-2">Clear Skies</h3>
+                                                <p className="text-slate-500 font-medium text-sm max-w-xs mx-auto">No incoming handshake requests found in the network buffer.</p>
                                             </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Connections Tab */}
-                                {tab === 'connections' && (
-                                    <div className="space-y-4">
-                                        {connections.length > 0 ? connections.map((connection) => (
-                                            <div key={connection.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 hover:border-[#3d522b]/30 transition-all">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="h-14 w-14 rounded-2xl bg-[#3d522b]/5 flex items-center justify-center text-lg font-black text-[#3d522b]">
-                                                            C
-                                                        </div>
-                                                        <div>
-                                                            <h3 className="font-bold text-slate-900 mb-1">Connected User</h3>
-                                                            <p className="text-[10px] font-black text-[#3d522b] uppercase tracking-widest">Connection</p>
-                                                            <p className="text-xs text-slate-400 mt-1">
-                                                                Connected on {new Date(connection.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                            </p>
-                                                        </div>
+                                        )
+                                    ) : (
+                                        connections.length > 0 ? connections.map((connection) => {
+                                            const isSource = connection.source_id === user?.id;
+                                            const targetId = isSource ? connection.target_id : connection.source_id;
+                                            return (
+                                            <div key={connection.id} className="bg-white rounded-[2rem] border border-slate-200 p-6 xl:p-8 flex flex-col xl:flex-row items-center justify-between gap-6 hover:shadow-xl hover:border-[#3d522b]/20 transition-all duration-300">
+                                                <div className="flex items-center gap-5 text-center xl:text-left">
+                                                    <div className="h-16 w-16 rounded-[1.2rem] bg-slate-50 flex items-center justify-center border border-slate-100 flex-shrink-0">
+                                                        <NetworkIcon className="h-6 w-6 text-[#3d522b]" />
                                                     </div>
+                                                    <div>
+                                                        <div className="inline-flex items-center gap-2 mb-2">
+                                                            <div className="h-1.5 w-1.5 rounded-full bg-[#3d522b]"></div>
+                                                            <span className="text-[9px] font-black text-[#3d522b] uppercase tracking-[0.2em]">Active Uplink</span>
+                                                        </div>
+                                                        <h3 className="text-lg font-black text-slate-900 mb-1">Secured Node</h3>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">
+                                                           EST: {new Date(connection.created_at).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="w-full xl:w-auto">
                                                     <Button
                                                         variant="outline"
-                                                        className="rounded-xl px-6 h-10"
-                                                        onClick={() => router.push(`/profile/${connection.source_id === user?.id ? connection.target_id : connection.source_id}`)}
+                                                        className="w-full xl:w-auto border-slate-200 text-slate-700 hover:text-white hover:border-[#3d522b] hover:bg-[#3d522b] rounded-xl px-8 h-12 text-[10px] font-black uppercase tracking-widest transition-all"
+                                                        onClick={() => router.push(`/profile/${targetId}`)}
                                                     >
-                                                        View Profile
+                                                        Access Node
                                                     </Button>
                                                 </div>
                                             </div>
-                                        )) : (
-                                            <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-slate-200">
-                                                <Users className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                                                <h3 className="text-lg font-bold text-slate-900 mb-2">No Connections Yet</h3>
-                                                <p className="text-slate-500 text-sm max-w-xs mx-auto">Start connecting with people in the Discover tab.</p>
+                                        )}) : (
+                                            <div className="col-span-full py-20 text-center bg-white rounded-[3rem] border border-slate-200 shadow-sm max-w-3xl mx-auto w-full">
+                                                <div className="h-20 w-20 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-slate-100">
+                                                    <Users className="h-8 w-8 text-slate-300" />
+                                                </div>
+                                                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-2">Network Isolated</h3>
+                                                <p className="text-slate-500 font-medium text-sm max-w-xs mx-auto">Initialize connections in the Global Radar to construct your ecosystem.</p>
                                             </div>
-                                        )}
-                                    </div>
-                                )}
-                            </>
-                        )}
+                                        )
+                                    )}
+                                </div>
+                             )}
 
-                        {/* Pagination / Load More */}
-                        {!loading && tab === 'discover' && people.length > 0 && (
-                            <div className="flex justify-center pt-8">
-                                <button className="px-8 py-3 bg-white border border-slate-200 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-[#3d522b] hover:border-[#3d522b]/30 transition-all shadow-sm">
-                                    Load More Signal
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

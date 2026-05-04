@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Rocket, Target, BarChart3, ArrowUpRight, Zap, Filter, Sparkles, SlidersHorizontal, ArrowLeft, Globe, MapPin, Building2, TrendingUp, Search } from 'lucide-react';
@@ -30,15 +30,17 @@ export default function InvestorMatches() {
     useEffect(() => {
         const fetchMatches = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                const user = session?.user;
-                if (!user) {
+                const currentUser = auth.getUser();
+                if (!currentUser) {
                     router.push('/login');
                     return;
                 }
 
                 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
-                const res = await fetch(`${API_URL}/investors/${user.id}/matches`);
+                const token = auth.getToken();
+                const res = await fetch(`${API_URL}/investors/${currentUser.id}/matches`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const data = await res.json();
 
                 if (data.matches) {
@@ -87,7 +89,7 @@ export default function InvestorMatches() {
                 {matches.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {matches.map((startup) => (
-                            <div key={startup.id} className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-[#3d522b]/5 transition-all duration-500 group relative flex flex-col h-full border-b-4 border-b-[#3d522b]/0 hover:border-b-[#3d522b]">
+                            <div key={startup._id} className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-[#3d522b]/5 transition-all duration-500 group relative flex flex-col h-full border-b-4 border-b-[#3d522b]/0 hover:border-b-[#3d522b]">
                                 {/* Header */}
                                 <div className="flex justify-between items-start mb-10">
                                     <div className="h-16 w-16 bg-slate-50 border border-slate-100 rounded-3xl flex items-center justify-center group-hover:bg-[#3d522b] group-hover:border-[#3d522b] transition-all duration-500 shadow-sm">

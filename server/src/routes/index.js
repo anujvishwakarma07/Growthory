@@ -1,4 +1,5 @@
 import express from 'express';
+import authRoutes from './authRoutes.js';
 import startupRoutes from './startupRoutes.js';
 import investorRoutes from './investorRoutes.js';
 import professionalRoutes from './professionalRoutes.js';
@@ -12,6 +13,7 @@ router.get('/status', (req, res) => {
     res.json({ status: 'healthy', timestamp: new Date() });
 });
 
+router.use('/auth', authRoutes);
 router.use('/startups', startupRoutes);
 router.use('/investors', investorRoutes);
 router.use('/professionals', professionalRoutes);

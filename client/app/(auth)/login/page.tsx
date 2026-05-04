@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
@@ -20,14 +20,15 @@ export default function Login() {
         setLoading(true);
         setError(null);
 
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-            toast.error(error.message);
-            setError(error.message);
-            setLoading(false);
-        } else {
+        try {
+            await auth.login(email, password);
             toast.success('Authentication successful!');
             router.push('/dashboard');
+        } catch (err: any) {
+            const message = err.message || 'Login failed';
+            toast.error(message);
+            setError(message);
+            setLoading(false);
         }
     };
 

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/auth';
 import { Menu, X, Rocket, ChevronDown, Globe, Zap, Users, BarChart3, LogOut, User, Settings } from 'lucide-react';
 import Button from '../ui/Button';
 
@@ -16,9 +16,8 @@ export default function Navbar() {
     const userMenuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-        });
+        // Initial user load
+        setUser(auth.getUser());
 
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
@@ -32,14 +31,14 @@ export default function Navbar() {
         document.addEventListener('mousedown', handleClickOutside);
 
         return () => {
-            subscription.unsubscribe();
             window.removeEventListener('scroll', handleScroll);
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, []);
+    }, [pathname]); // Re-check user on route changes
 
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
+    const handleLogout = () => {
+        auth.logout();
+        setUser(null);
         window.location.href = '/login';
     };
 
@@ -94,7 +93,7 @@ export default function Navbar() {
                                     onClick={() => setShowUserMenu(!showUserMenu)}
                                     className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-[#3d522b] font-black border border-slate-200 hover:bg-[#3d522b] hover:text-white transition-all cursor-pointer"
                                 >
-                                    {user.user_metadata?.full_name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
+                                    {user.full_name?.[0]?.toUpperCase() || user.email[0].toUpperCase()}
                                 </button>
 
                                 {/* Dropdown Menu */}
@@ -103,7 +102,7 @@ export default function Navbar() {
                                         {/* User Info */}
                                         <div className="px-4 py-3 border-b border-slate-100">
                                             <p className="text-sm font-black text-slate-900 uppercase tracking-tight">
-                                                {user.user_metadata?.full_name || 'User'}
+                                                {user.full_name || 'User'}
                                             </p>
                                             <p className="text-xs text-slate-500 font-medium truncate">
                                                 {user.email}

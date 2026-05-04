@@ -1,0 +1,72 @@
+// Auth helper for MongoDB + JWT
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+export const auth = {
+    async login(email, password) {
+        const res = await fetch(`${API_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('growthory_token', data.token);
+            localStorage.setItem('growthory_user', JSON.stringify(data.user));
+        }
+        return data;
+    },
+
+    async signup(email, password, full_name, role) {
+        const res = await fetch(`${API_URL}/auth/signup`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, full_name, role }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Signup failed');
+        
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('growthory_token', data.token);
+            localStorage.setItem('growthory_user', JSON.stringify(data.user));
+        }
+        return data;
+    },
+
+    logout() {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('growthory_token');
+            localStorage.removeItem('growthory_user');
+        }
+    },
+
+    getToken() {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('growthory_token');
+        }
+        return null;
+    },
+
+    getUser() {
+        if (typeof window !== 'undefined') {
+            const user = localStorage.getItem('growthory_user');
+            return user ? JSON.parse(user) : null;
+        }
+        return null;
+    },
+
+    async getMe() {
+        const token = this.getToken();
+        if (!token) return null;
+
+        const res = await fetch(`${API_URL}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!res.ok) {
+            this.logout();
+            return null;
+        }
+        return await res.json();
+    }
+};

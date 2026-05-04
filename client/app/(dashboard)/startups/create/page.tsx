@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/auth';
 import Button from '@/components/ui/Button';
 import { Rocket, Sparkles, AlertCircle, ArrowLeft, CheckCircle2, Zap, Target, ArrowRight } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -35,15 +35,19 @@ export default function CreateStartup() {
         setError(null);
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error("You must be logged in");
+            const currentUser = auth.getUser();
+            if (!currentUser) throw new Error("You must be logged in");
 
+            const token = auth.getToken();
             const response = await fetch(`${API_URL}/startups`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     ...formData,
-                    founder_id: user.id
+                    founder_id: currentUser.id
                 })
             });
 

@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
@@ -41,27 +41,23 @@ export default function Dashboard() {
 
     useEffect(() => {
         const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
+            const currentUser = auth.getUser();
+            if (!currentUser) {
                 router.push('/login');
                 return;
             }
-            setUser(session.user);
+            setUser(currentUser);
 
+            const token = auth.getToken();
             const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000/api` : 'http://localhost:5000/api');
 
             try {
                 // Fetch All Startups for the Feed
-                console.log(`Fetching Startups: ${API_URL}/startups`);
-                const res = await fetch(`${API_URL}/startups`);
+                const res = await fetch(`${API_URL}/startups`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-                const contentType = res.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
-                    const text = await res.text();
-                    console.error("Dashboard - Invalid JSON Response:", text.substring(0, 500));
-                    throw new Error(`Expected JSON, got ${contentType}`);
-                }
-
+                if (!res.ok) throw new Error("Failed to fetch startups");
                 const allStartups = await res.json();
 
                 // Ensure allStartups is an array for feed and for finding profile
@@ -69,9 +65,9 @@ export default function Dashboard() {
                 setStartups(startupsArray);
 
                 // Find user's specific profile
-                const role = session.user.user_metadata?.role || 'founder';
+                const role = currentUser.role || 'founder';
                 if (role === 'founder') {
-                    const myCol = startupsArray.find((s: any) => s.founder_id === session.user.id);
+                    const myCol = startupsArray.find((s: any) => s.founder_id === currentUser.id);
                     setMyProfile(myCol);
                 }
             } catch (err: any) {
@@ -91,8 +87,8 @@ export default function Dashboard() {
         </div>
     );
 
-    const role = user?.user_metadata?.role || 'founder';
-    const fullName = user?.user_metadata?.full_name || user?.email?.split('@')[0];
+    const role = user?.role || 'founder';
+    const fullName = user?.full_name || user?.email?.split('@')[0];
 
     return (
         <div className="min-h-screen bg-[#f8faf7] text-slate-800 pb-20 pt-20">
@@ -204,7 +200,7 @@ export default function Dashboard() {
                     {/* Startup Cards (Feed) */}
                     <div className="space-y-4">
                         {startups.length > 0 ? startups.map((s) => (
-                            <div key={s.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transform transition-all hover:border-slate-300">
+                            <div key={s._id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transform transition-all hover:border-slate-300">
                                 <div className="p-5">
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex gap-4">
@@ -248,11 +244,14 @@ export default function Dashboard() {
                                                     onClick={async () => {
                                                         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api'}/startups/toggle-like`, {
                                                             method: 'POST',
-                                                            headers: { 'Content-Type': 'application/json' },
-                                                            body: JSON.stringify({ startup_id: s.id, user_id: user.id })
+                                                            headers: { 
+                                                                'Content-Type': 'application/json',
+                                                                'Authorization': `Bearer ${auth.getToken()}`
+                                                            },
+                                                            body: JSON.stringify({ startup_id: s._id, user_id: user.id })
                                                         });
                                                         const data = await res.json();
-                                                        setStartups(prev => prev.map(item => item.id === s.id ? { ...item, like_count: data.liked ? item.like_count + 1 : item.like_count - 1, liked: data.liked } : item));
+                                                        setStartups(prev => prev.map(item => item._id === s._id ? { ...item, like_count: data.liked ? item.like_count + 1 : item.like_count - 1, liked: data.liked } : item));
                                                     }}
                                                     className={`flex items-center gap-2 transition-colors ${s.liked ? 'text-[#3d522b]' : 'text-slate-500 hover:text-[#3d522b]'}`}
                                                 >
@@ -260,7 +259,9 @@ export default function Dashboard() {
                                                 </button>
                                                 <button
                                                     onClick={async () => {
-                                                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api'}/startups/${s.id}/likes`);
+                                                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api'}/startups/${s._id}/likes`, {
+                                                            headers: { 'Authorization': `Bearer ${auth.getToken()}` }
+                                                        });
                                                         const data = await res.json();
                                                         setLikesData(data);
                                                         setLikesModal(s.name);
@@ -281,7 +282,10 @@ export default function Dashboard() {
                                                 onClick={async () => {
                                                     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api'}/network/connect`, {
                                                         method: 'POST',
-                                                        headers: { 'Content-Type': 'application/json' },
+                                                        headers: { 
+                                                            'Content-Type': 'application/json',
+                                                            'Authorization': `Bearer ${auth.getToken()}`
+                                                        },
                                                         body: JSON.stringify({ source_id: user.id, target_id: s.founder_id })
                                                     });
                                                     const data = await res.json();

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/auth';
 import { useRouter, useParams } from 'next/navigation';
 import { User, Mail, Briefcase, MapPin, Calendar, ArrowLeft, Shield, TrendingUp, Award, Target, Rocket, Building2, UserPlus, Users, Loader2, Sparkles } from 'lucide-react';
 import Button from '@/components/ui/Button';
@@ -23,26 +23,30 @@ export default function PublicProfilePage() {
         const loadData = async () => {
             try {
                 // 1. Get current logged in user
-                const { data: { session } } = await supabase.auth.getSession();
-                setCurrentUser(session?.user ?? null);
+                const user = auth.getUser();
+                setCurrentUser(user);
 
-                if (session?.user?.id === profileId) {
+                if (user?.id === profileId) {
                     router.replace('/profile');
                     return;
                 }
 
+                const token = auth.getToken();
+                const headers: any = {};
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
                 // 2. Fetch public profile
                 let url = `${API_URL}/users/${profileId}`;
-                if (session?.user?.id) {
-                    url += `?currentUserId=${session.user.id}`;
+                if (user?.id) {
+                    url += `?currentUserId=${user.id}`;
                 }
-                const res = await fetch(url);
+                const res = await fetch(url, { headers });
                 if (!res.ok) throw new Error("Profile not found");
                 const userData = await res.json();
                 setProfileUser(userData);
 
                 // 3. Fetch suggestions
-                const sugRes = await fetch(`${API_URL}/users/suggestions?excludeId=${profileId}&limit=3`);
+                const sugRes = await fetch(`${API_URL}/users/suggestions?excludeId=${profileId}&limit=3`, { headers });
                 const sugData = await sugRes.json();
                 setSuggestions(sugData);
 
@@ -65,7 +69,10 @@ export default function PublicProfilePage() {
         try {
             const res = await fetch(`${API_URL}/network/connect`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${auth.getToken()}`
+                },
                 body: JSON.stringify({
                     source_id: currentUser.id,
                     target_id: profileId,

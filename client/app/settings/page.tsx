@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { User, Shield, Bell, Zap, Globe, Lock, LogOut, ChevronRight, Sparkles, Mail, Camera, Save } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -52,26 +52,21 @@ export default function SettingsPage() {
 
     const loadUserData = async () => {
         try {
-            const { data: { user: authUser } } = await supabase.auth.getUser();
-            if (!authUser) {
+            const currentUser = auth.getUser();
+            if (!currentUser) {
                 router.push('/login');
                 return;
             }
 
-            setUser(authUser);
+            setUser(currentUser);
             setProfileData({
-                full_name: authUser.user_metadata?.full_name || '',
-                email: authUser.email || '',
-                bio: authUser.user_metadata?.bio || ''
+                full_name: currentUser.full_name || '',
+                email: currentUser.email || '',
+                bio: currentUser.bio || ''
             });
 
-            // Load AI and Eco settings from metadata if they exist
-            if (authUser.user_metadata?.ai_prefs) {
-                setAiPrefs(authUser.user_metadata.ai_prefs);
-            }
-            if (authUser.user_metadata?.eco_settings) {
-                setEcoSettings(authUser.user_metadata.eco_settings);
-            }
+            if (currentUser.ai_prefs) setAiPrefs(currentUser.ai_prefs);
+            if (currentUser.eco_settings) setEcoSettings(currentUser.eco_settings);
         } catch (error) {
             console.error('Error loading user data:', error);
         }
@@ -80,21 +75,34 @@ export default function SettingsPage() {
     const handleSettingsUpdate = async (type: 'ai' | 'eco') => {
         setLoading(true);
         try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+            const token = auth.getToken();
+            
             const updateData = type === 'ai'
                 ? { ai_prefs: aiPrefs }
                 : { eco_settings: ecoSettings };
 
-            const { error } = await supabase.auth.updateUser({
-                data: updateData
+            const res = await fetch(`${API_URL}/users/update-profile`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updateData)
             });
 
-            if (error) throw error;
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to update settings");
+
+            // Update local storage
+            const updatedUser = { ...auth.getUser(), ...data.user };
+            localStorage.setItem('growthory_user', JSON.stringify(updatedUser));
+
             toast.success(`${type === 'ai' ? 'AI' : 'Ecosystem'} preferences synchronized!`);
-            await loadUserData();
+            setUser(updatedUser);
         } catch (error: any) {
             console.error('Settings update error:', error);
-            const errorMessage = error.message || 'Failed to sync with ecosystem nodes';
-            toast.error(errorMessage);
+            toast.error(error.message || 'Failed to sync with ecosystem nodes');
         } finally {
             setLoading(false);
         }
@@ -117,11 +125,20 @@ export default function SettingsPage() {
         }
 
         try {
-            const { error } = await supabase.auth.updateUser({
-                password: securityData.newPassword
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+            const token = auth.getToken();
+
+            const res = await fetch(`${API_URL}/users/change-password`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ newPassword: securityData.newPassword })
             });
 
-            if (error) throw error;
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to update password');
 
             toast.success('Password updated successfully!');
             setSecurityData({
@@ -137,7 +154,7 @@ export default function SettingsPage() {
     };
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
+        auth.logout();
         router.push('/login');
     };
 
@@ -247,15 +264,30 @@ export default function SettingsPage() {
                                                 e.preventDefault();
                                                 setLoading(true);
                                                 try {
-                                                    const { error } = await supabase.auth.updateUser({
-                                                        data: {
+                                                    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+                                                    const token = auth.getToken();
+                                                    
+                                                    const res = await fetch(`${API_URL}/users/update-profile`, {
+                                                        method: 'PUT',
+                                                        headers: { 
+                                                            'Content-Type': 'application/json',
+                                                            'Authorization': `Bearer ${token}`
+                                                        },
+                                                        body: JSON.stringify({
                                                             full_name: profileData.full_name,
                                                             bio: profileData.bio
-                                                        }
+                                                        })
                                                     });
-                                                    if (error) throw error;
+
+                                                    const data = await res.json();
+                                                    if (!res.ok) throw new Error(data.error || 'Failed to update identity');
+
+                                                    // Update local storage
+                                                    const updatedUser = { ...auth.getUser(), ...data.user };
+                                                    localStorage.setItem('growthory_user', JSON.stringify(updatedUser));
+
                                                     toast.success('Identity synchronized!');
-                                                    await loadUserData();
+                                                    setUser(updatedUser);
                                                 } catch (error: any) {
                                                     toast.error(error.message);
                                                 } finally {

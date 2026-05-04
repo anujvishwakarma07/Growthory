@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/auth';
 import Button from '@/components/ui/Button';
 import { Shield, Sparkles, ArrowRight, Target, DollarSign, Briefcase, TrendingUp, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -24,8 +24,8 @@ export default function InvestorSetup() {
         setLoading(true);
         setError(null);
 
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        const currentUser = auth.getUser();
+        if (!currentUser) {
             toast.error("You must be logged in");
             setError("You must be logged in");
             setLoading(false);
@@ -36,11 +36,15 @@ export default function InvestorSetup() {
         const stagesList = formData.stages.split(',').map(s => s.trim()).filter(s => s !== '');
 
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+        const token = auth.getToken();
 
         try {
-            const response = await fetch(`${API_URL}/investors/${user.id}/preferences`, {
+            const response = await fetch(`${API_URL}/investors/${currentUser.id}/preferences`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     ...formData,
                     industries: industriesList,

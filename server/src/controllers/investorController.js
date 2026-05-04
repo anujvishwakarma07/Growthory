@@ -1,6 +1,8 @@
-import { supabase } from '../config/supabase.js';
+import InvestorProfile from '../models/InvestorProfile.js';
+import Startup from '../models/Startup.js';
+import StartupAnalysis from '../models/StartupAnalysis.js';
+import User from '../models/User.js';
 import { generateEmbedding } from '../utils/ai.js';
-import { ensureUserExists } from '../utils/userSync.js';
 
 // Update Investor Profile
 export const updatePreferences = async (req, res) => {
@@ -8,23 +10,20 @@ export const updatePreferences = async (req, res) => {
     const { ticket_size_min, ticket_size_max, industries, stages, bio } = req.body;
 
     try {
-        await ensureUserExists(id);
-        const { data, error } = await supabase
-            .from('investor_profiles')
-            .upsert([
-                {
-                    id,
-                    ticket_size_min,
-                    ticket_size_max,
-                    interested_industries: industries,
-                    interested_stages: stages,
-                    bio
-                }
-            ])
-            .select();
+        const profile = await InvestorProfile.findOneAndUpdate(
+            { user_id: id },
+            {
+                user_id: id,
+                ticket_size_min,
+                ticket_size_max,
+                interested_industries: industries,
+                interested_stages: stages,
+                bio
+            },
+            { upsert: true, new: true }
+        );
 
-        if (error) throw error;
-        res.json({ success: true, data });
+        res.json({ success: true, data: profile });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -35,61 +34,40 @@ export const getInvestorMatches = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // 1. Get Investor Profile
-        const { data: investor, error: invError } = await supabase
-            .from('investor_profiles')
-            .select('*')
-            .eq('id', id)
-            .single();
+        const investor = await InvestorProfile.findOne({ user_id: id });
+        if (!investor) throw new Error("Investor profile not found");
 
-        if (invError) throw new Error("Investor profile not found");
+        // Note: For now we're using a simple filter since vector search isn't set up yet
+        const startups = await Startup.find({
+            industry: { $in: investor.interested_industries || [] }
+        }).limit(20).lean();
 
-        // 2. Generate Embedding for their interests (Bio + Industries)
-        const queryText = `${investor.bio} Interested in ${investor.interested_industries?.join(', ')} startups at ${investor.interested_stages?.join(', ')} stage.`;
-        const embedding = await generateEmbedding(queryText);
-
-        if (!embedding) throw new Error("Failed to generate embedding");
-
-        // 3. Vector Search (RPC call to Supabase needed usually, but we can do raw SQL via library if rpc not set up, 
-        //    OR we assume the user ran a 'match_startups' function. 
-        //    For this MVP, let's use the 'rpc' method assuming the user ran a match function, 
-        //    OR simpler: filter by exact industry then sort by stage. 
-        //    Wait, we promised Vector Search. We need an RPC function in Supabase.
-        //    Since I cannot create RPC remotely easily without SQL Editor, I will fallback to a hybrid approach:
-        //    Fetch recent startups, rerank in code or strictly filter for now if RPC is missing.)
-
-        // *Better Approach for MVP without guaranteed RPC*:
-        // Fetch all qualified startups (stage/industry match) and prioritize those.
-        // Ideally, we'd use: supabase.rpc('match_startups', { query_embedding: embedding, match_threshold: 0.7, match_count: 10 })
-
-        // Let's try to call the likely-to-exist RPC if they ran schema.sql (I should have added it). 
-        // I missed adding the RPC in the previous schema step. 
-        // I will return a "Simple Filter" match for now and ask user to run RPC script update.
-
-        const { data: matches, error: matchError } = await supabase
-            .from('startups')
-            .select('*, startup_analysis(one_line_pitch, investor_appeal_score)')
-            .contains('industry', investor.interested_industries || []) // Simple filter overlap
-            // .filter ...
-            .limit(20);
-
-        // If pgvector was fully set up with RPC, we would use it here.
-        // For now, let's return the filtered list.
-
-        if (matchError) throw matchError;
+        const matches = await Promise.all(startups.map(async (s) => {
+            const analysis = await StartupAnalysis.findOne({ startup_id: s._id }).lean();
+            return {
+                ...s,
+                startup_analysis: analysis ? [analysis] : []
+            };
+        }));
 
         res.json({ matches });
-
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: error.message });
     }
 };
-export const getAllInvestors = async (req, res) => {
-    const { data, error } = await supabase
-        .from('investor_profiles')
-        .select('*, users(full_name, avatar_url)');
 
-    if (error) return res.status(500).json({ error: error.message });
-    res.json(data);
+export const getAllInvestors = async (req, res) => {
+    try {
+        const profiles = await InvestorProfile.find().populate('user_id', 'full_name avatar_url');
+        
+        const transformed = profiles.map(p => ({
+            ...p.toObject(),
+            users: p.user_id // Matching expected frontend format
+        }));
+
+        res.json(transformed);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 };

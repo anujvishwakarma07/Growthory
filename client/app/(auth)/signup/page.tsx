@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { auth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
@@ -22,25 +22,15 @@ export default function Signup() {
         setLoading(true);
         setError(null);
 
-        const { error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    full_name: fullName,
-                    role: role,
-                },
-                emailRedirectTo: `${window.location.origin}/auth/callback`,
-            },
-        });
-
-        if (error) {
-            toast.error(error.message);
-            setError(error.message);
+        try {
+            await auth.signup(email, password, fullName, role);
+            toast.success('Identity Initialized! Establishment successful.');
+            router.push('/dashboard');
+        } catch (err: any) {
+            const message = err.message || 'Signup failed';
+            toast.error(message);
+            setError(message);
             setLoading(false);
-        } else {
-            toast.success('Check your email for confirmation!');
-            router.push('/login');
         }
     };
 
