@@ -155,7 +155,10 @@ export default function LoadingDemo() {
                     <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6">
                         Full Screen Loader
                     </h3>
-                    <Button onClick={() => setShowFullScreen(true)}>
+                    <Button onClick={() => {
+                        setShowFullScreen(true);
+                        setTimeout(() => setShowFullScreen(false), 3000);
+                    }}>
                         Show Full Screen Loader
                     </Button>
                 </div>
@@ -167,9 +170,6 @@ export default function LoadingDemo() {
                         message="Processing your request..."
                     />
                 )}
-
-                {/* Auto-hide demo */}
-                {showFullScreen && setTimeout(() => setShowFullScreen(false), 3000)}
             </div>
         </div>
     );

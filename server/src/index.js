@@ -23,10 +23,12 @@ app.get('/', (req, res) => {
   res.send('Growthory API is running');
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+if (!process.env.VERCEL) {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log('\n🚀 Growthory Intelligence Protocol Active');
     console.log(`📡 Backend Node:    http://localhost:${PORT}`);
     console.log(`🌐 Ecosystem Sync:  http://localhost:${PORT}/api/status\n`);
-});
+  });
+}
 
 export default app;

@@ -14,6 +14,7 @@ interface StartupAnalysis {
 
 interface Startup {
     id: string;
+    _id?: string;
     name: string;
     industry: string;
     stage: string;
