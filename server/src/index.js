@@ -4,6 +4,10 @@ import dotenv from 'dotenv';
 import routes from './routes/index.js';
 import connectDB from './config/db.js';
 
+if (typeof global.DOMMatrix === 'undefined') {
+    global.DOMMatrix = class DOMMatrix {};
+}
+
 dotenv.config();
 
 const app = express();
