@@ -1,9 +1,16 @@
 import ProfessionalProfile from '../models/ProfessionalProfile.js';
 import { createRequire } from 'module';
-import fs from 'fs';
 import OpenAI from 'openai';
+import { v2 as cloudinary } from 'cloudinary';
 
-// Polyfill DOMMatrix for Node 22/24 environments to prevent pdf-parse module loading error
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Polyfill DOMMatrix for Node environments to prevent pdf-parse module loading error
 if (typeof global.DOMMatrix === 'undefined') {
     global.DOMMatrix = class DOMMatrix {};
 }
@@ -15,15 +22,39 @@ const openai = new OpenAI({
     baseURL: process.env.OPENAI_BASE_URL || "https://openrouter.ai/api/v1",
 });
 
+// Helper to upload buffer to Cloudinary directly
+const uploadToCloudinary = (buffer) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { resource_type: "auto" },
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }
+        );
+        stream.end(buffer);
+    });
+};
+
 export const parseResume = async (req, res) => {
     try {
         if (!req.file) throw new Error("No file uploaded");
 
+        // 1. Upload the file directly to Cloudinary from memory
+        let cloudinaryUrl = null;
+        try {
+            const uploadResult = await uploadToCloudinary(req.file.buffer);
+            cloudinaryUrl = uploadResult.secure_url;
+        } catch (uploadError) {
+            console.error("Cloudinary upload failed", uploadError);
+        }
+
+        // 2. Parse text from memory buffer using pdf-parse
         const pdf = require('pdf-parse');
-        const dataBuffer = fs.readFileSync(req.file.path);
-        const pdfData = await pdf(dataBuffer);
+        const pdfData = await pdf(req.file.buffer);
         const resumeText = pdfData.text;
 
+        // 3. Leverage AI to extract structured info from resume text
         const systemPrompt = `You are an expert technical recruiter. Extract structured data from the resume text. Return JSON only.`;
         const userPrompt = `Resume Text:
     ${resumeText.substring(0, 3000)}... (truncated)
@@ -48,21 +79,24 @@ export const parseResume = async (req, res) => {
 
         const { id } = req.body; // User ID
         
-        // Cleanup file
-        fs.unlinkSync(req.file.path);
+        // 4. Update MongoDB profile
+        const updateData = {
+            user_id: id,
+            skills: parsedData.skills,
+            experience_years: parsedData.experience_years,
+            parsed_resume_data: parsedData
+        };
+        if (cloudinaryUrl) {
+            updateData.resume_url = cloudinaryUrl;
+        }
 
         const profile = await ProfessionalProfile.findOneAndUpdate(
             { user_id: id },
-            {
-                user_id: id,
-                skills: parsedData.skills,
-                experience_years: parsedData.experience_years,
-                parsed_resume_data: parsedData
-            },
+            updateData,
             { upsert: true, new: true }
         );
 
-        res.json({ success: true, data: parsedData });
+        res.json({ success: true, data: parsedData, resume_url: cloudinaryUrl });
 
     } catch (error) {
         console.error(error);
