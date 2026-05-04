@@ -1,9 +1,14 @@
 import ProfessionalProfile from '../models/ProfessionalProfile.js';
 import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdf = require('pdf-parse');
 import fs from 'fs';
 import OpenAI from 'openai';
+
+// Polyfill DOMMatrix for Node 22/24 environments to prevent pdf-parse module loading error
+if (typeof global.DOMMatrix === 'undefined') {
+    global.DOMMatrix = class DOMMatrix {};
+}
+
+const require = createRequire(import.meta.url);
 
 const openai = new OpenAI({
     apiKey: process.env.OPENROUTER_API_KEY,
@@ -14,6 +19,7 @@ export const parseResume = async (req, res) => {
     try {
         if (!req.file) throw new Error("No file uploaded");
 
+        const pdf = require('pdf-parse');
         const dataBuffer = fs.readFileSync(req.file.path);
         const pdfData = await pdf(dataBuffer);
         const resumeText = pdfData.text;
