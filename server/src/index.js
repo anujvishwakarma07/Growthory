@@ -5,11 +5,11 @@ import routes from './routes/index.js';
 import connectDB from './config/db.js';
 
 dotenv.config();
-connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+app.use(connectDB);
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
