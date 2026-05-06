@@ -38,9 +38,6 @@ export default function CreateStartup() {
         setImages(prev => prev.filter((_, i) => i !== index));
     };
 
-    let API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
-    if (API_URL.endsWith('/')) API_URL = API_URL.slice(0, -1);
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);

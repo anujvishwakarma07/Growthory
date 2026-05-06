@@ -55,7 +55,6 @@ export default function Dashboard() {
             setUser(currentUser);
 
             const token = auth.getToken();
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000/api` : 'http://localhost:5000/api');
 
             try {
                 // Fetch Stats
@@ -321,7 +320,7 @@ export default function Dashboard() {
                                             <div className="flex items-center gap-1">
                                                 <button
                                                     onClick={async () => {
-                                                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api'}/startups/toggle-like`, {
+                                                        const res = await fetch(`${API_URL}/startups/toggle-like`, {
                                                             method: 'POST',
                                                             headers: { 
                                                                 'Content-Type': 'application/json',

@@ -1,5 +1,11 @@
 // Auth helper for MongoDB + JWT
-let API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+export let API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+// Robust production fallback
+if (typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !process.env.NEXT_PUBLIC_API_URL) {
+    API_URL = 'https://growthory-api.vercel.app/api';
+}
+
 // Clean up trailing slashes if present
 if (API_URL.endsWith('/')) {
     API_URL = API_URL.slice(0, -1);

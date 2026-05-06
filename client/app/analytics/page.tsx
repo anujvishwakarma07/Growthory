@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import { auth, API_URL } from '@/lib/auth';
 import { BarChart3, TrendingUp, Zap, PieChart, Activity, Globe, ArrowUpRight, ArrowDownRight, Rocket, Sparkles } from 'lucide-react';
 
 export default function AnalyticsPage() {
@@ -9,7 +10,6 @@ export default function AnalyticsPage() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
                 const res = await fetch(`${API_URL}/system/stats`);
                 const data = await res.json();
                 setStats(data);

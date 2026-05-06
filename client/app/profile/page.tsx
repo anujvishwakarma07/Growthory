@@ -52,19 +52,17 @@ export default function ProfilePage() {
 
             // Fetch startup if founder
             if (currentUser.role === 'founder') {
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
                 const token = auth.getToken();
                 const res = await fetch(`${API_URL}/startups`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const startups = await res.json();
-                if (Array.isArray(startups)) {
-                    const mine = startups.find((s: any) => s.founder_id === currentUser.id);
-                    setMyStartup(mine);
-                }
+                const myCol = Array.isArray(startups) ? startups.find((s: any) => s.founder_id === currentUser.id) : null;
+                setMyStartup(myCol);
             }
-        } catch (error) {
-            console.error('Error loading profile:', error);
+        } catch (err: any) {
+            console.error("Profile load error:", err);
+            toast.error("Failed to load profile intelligence");
         } finally {
             setLoading(false);
         }
@@ -73,10 +71,9 @@ export default function ProfilePage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
             const token = auth.getToken();
             
-            const res = await fetch(`${API_URL}/users/update-profile`, {
+            const res = await fetch(`${API_URL}/users/profile`, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',

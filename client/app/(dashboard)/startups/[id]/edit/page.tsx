@@ -24,9 +24,6 @@ export default function EditStartup() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    let API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
-    if (API_URL.endsWith('/')) API_URL = API_URL.slice(0, -1);
-
     useEffect(() => {
         const fetchStartup = async () => {
             try {
