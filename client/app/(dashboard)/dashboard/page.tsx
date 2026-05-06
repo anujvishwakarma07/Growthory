@@ -167,25 +167,25 @@ export default function Dashboard() {
                     <div style={{flex: 1, overflowY: 'auto', paddingTop: '1rem', paddingBottom: '5rem'}} className="space-y-6">
                     {/* Live Ecosystem Pulse Bar */}
                     {stats && (
-                        <div className="bg-slate-900 rounded-xl shadow-xl overflow-hidden relative group">
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#3d522b]/20 to-transparent pointer-events-none"></div>
+                        <div className="bg-[#3d522b] rounded-xl shadow-xl overflow-hidden relative group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#606c38]/40 to-transparent pointer-events-none"></div>
                             <div className="flex items-center justify-between px-6 py-4 relative z-10">
                                 <div className="flex items-center gap-4">
-                                    <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]"></div>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Live Ecosystem Signal</span>
+                                    <div className="h-2 w-2 bg-[#8a9a5b] rounded-full animate-pulse shadow-[0_0_10px_#8a9a5b]"></div>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Live Ecosystem Signal</span>
                                 </div>
                                 <div className="flex items-center gap-8">
                                     <div className="text-center">
                                         <div className="text-xs font-black text-white">{stats.totalStartups}</div>
-                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Ventures</div>
+                                        <div className="text-[8px] font-bold text-[#8a9a5b] uppercase">Ventures</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-xs font-black text-white">{stats.signalsToday}</div>
-                                        <div className="text-[8px] font-bold text-slate-400 uppercase">24h Signal</div>
+                                        <div className="text-[8px] font-bold text-[#8a9a5b] uppercase">24h Signal</div>
                                     </div>
                                     <div className="text-center">
                                         <div className="text-xs font-black text-white">{stats.totalInvestors}</div>
-                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Capital</div>
+                                        <div className="text-[8px] font-bold text-[#8a9a5b] uppercase">Capital</div>
                                     </div>
                                 </div>
                             </div>
