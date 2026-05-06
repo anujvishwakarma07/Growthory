@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { createStartup, getStartup, getAllStartups, toggleLike, addComment, getComments, updateStartup, deleteStartup } from '../controllers/startupController.js';
 import { getStartupLikes } from '../controllers/userController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });

@@ -13,26 +13,26 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(connectDB);
-const allowedOrigins = [
-  'https://growthory.vercel.app',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000'
-];
-
+// CORS MUST come FIRST — before DB middleware, before routes, before everything.
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
+
+// Explicitly handle all OPTIONS preflight requests immediately
+app.options('*', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.status(200).end();
+});
+
 app.use(express.json());
+
+// DB connect comes AFTER cors so preflight never gets blocked
+app.use(connectDB);
 
 app.use('/api', routes);
 
