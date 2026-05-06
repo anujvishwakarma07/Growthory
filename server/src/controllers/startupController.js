@@ -126,3 +126,92 @@ export const getComments = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+export const updateStartup = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, tagline, description, industry, stage, website, existing_images } = req.body;
+        
+        const startup = await Startup.findById(id);
+        if (!startup) return res.status(404).json({ error: "Startup not found" });
+
+        // Authorization check
+        if (startup.founder_id.toString() !== req.user.id) {
+            return res.status(403).json({ error: "Unauthorized to edit this startup" });
+        }
+
+        // Handle Images
+        let final_image_urls = [];
+        if (existing_images) {
+            // existing_images might be a JSON string if sent via FormData
+            final_image_urls = typeof existing_images === 'string' ? JSON.parse(existing_images) : existing_images;
+        }
+
+        if (req.files && req.files.length > 0) {
+            try {
+                const uploadPromises = req.files.map(file => uploadToCloudinary(file.buffer));
+                const uploadResults = await Promise.all(uploadPromises);
+                const new_urls = uploadResults.map(res => res.secure_url);
+                final_image_urls = [...final_image_urls, ...new_urls];
+            } catch (err) {
+                console.error("Update image upload failed:", err);
+            }
+        }
+
+        // Update fields
+        if (name) startup.name = name;
+        if (tagline) startup.tagline = tagline;
+        if (description) startup.description_raw = description;
+        if (industry) startup.industry = industry;
+        if (stage) startup.stage = stage;
+        if (website) startup.website = website;
+        startup.image_urls = final_image_urls;
+
+        await startup.save();
+
+        // Optional: Re-run AI analysis if description changed
+        if (description && description !== startup.description_raw) {
+            try {
+                const analysis = await analyzeStartupPitch(description, startup.name, startup.industry);
+                await StartupAnalysis.findOneAndUpdate(
+                    { startup_id: startup._id },
+                    {
+                        one_line_pitch: analysis.one_line_pitch,
+                        strengths: analysis.strengths,
+                        weaknesses: analysis.weaknesses,
+                        suggestions: analysis.suggestions,
+                        investor_appeal_score: analysis.investor_appeal_score,
+                    },
+                    { upsert: true }
+                );
+            } catch (err) {
+                console.error("AI Analysis update failed:", err);
+            }
+        }
+
+        res.json({ success: true, startup });
+    } catch (error) {
+        console.error("Update Startup Error:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+export const deleteStartup = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const startup = await Startup.findById(id);
+        if (!startup) return res.status(404).json({ error: "Startup not found" });
+
+        if (startup.founder_id.toString() !== req.user.id) {
+            return res.status(403).json({ error: "Unauthorized" });
+        }
+
+        await Startup.deleteOne({ _id: id });
+        await StartupAnalysis.deleteMany({ startup_id: id });
+        await StartupLike.deleteMany({ startup_id: id });
+        await StartupComment.deleteMany({ startup_id: id });
+
+        res.json({ success: true, message: "Startup deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};

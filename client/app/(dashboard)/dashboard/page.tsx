@@ -27,7 +27,10 @@ import {
     TrendingUp,
     Rocket,
     Target,
-    Activity
+    Activity,
+    Edit3,
+    ExternalLink,
+    Trash
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -40,6 +43,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [likesModal, setLikesModal] = useState<string | null>(null);
     const [likesData, setLikesData] = useState<any[]>([]);
+    const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
     useEffect(() => {
         const checkUser = async () => {
@@ -245,7 +249,43 @@ export default function Dashboard() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <button className="text-slate-400 hover:text-slate-600"><MoreHorizontal className="h-5 w-5" /></button>
+                                        <div className="relative">
+                                            <button 
+                                                onClick={() => setActiveMenu(activeMenu === s._id ? null : s._id)}
+                                                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-50 transition-all"
+                                            >
+                                                <MoreHorizontal className="h-5 w-5" />
+                                            </button>
+                                            
+                                            {activeMenu === s._id && (
+                                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 z-[60] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+                                                    {(s.founder_id === user?.id) && (
+                                                        <button 
+                                                            onClick={() => router.push(`/startups/${s._id}/edit`)}
+                                                            className="w-full flex items-center gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-[#3d522b] transition-all"
+                                                        >
+                                                            <Edit3 className="h-4 w-4" /> Edit Protocol
+                                                        </button>
+                                                    )}
+                                                    <button 
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(`${window.location.origin}/profile/${s.founder_id}`);
+                                                            toast.success("Signal link copied to clipboard");
+                                                            setActiveMenu(null);
+                                                        }}
+                                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all"
+                                                    >
+                                                        <Share2 className="h-4 w-4" /> Share Signal
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setActiveMenu(null)}
+                                                        className="w-full flex items-center gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all border-t border-slate-50"
+                                                    >
+                                                        <X className="h-4 w-4" /> Close
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <p className="text-sm text-slate-600 leading-relaxed mb-6 line-clamp-3 italic">
