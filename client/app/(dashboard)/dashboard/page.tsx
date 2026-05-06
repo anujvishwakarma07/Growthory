@@ -232,7 +232,7 @@ export default function Dashboard() {
                     {/* Startup Cards (Feed) */}
                     <div className="space-y-4">
                         {startups.length > 0 ? startups.map((s) => (
-                            <div key={s._id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transform transition-all hover:border-slate-300 group">
+                            <div key={s._id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                                 <div className="p-5">
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex gap-4">
@@ -240,7 +240,7 @@ export default function Dashboard() {
                                                 {s.logo_url ? <img src={s.logo_url} alt={s.name} className="h-full w-full object-contain rounded-lg" /> : <Building2 className="h-6 w-6" />}
                                             </div>
                                             <div>
-                                                <h3 className="text-base font-bold text-slate-900 group-hover:text-[#3d522b] transition-colors">{s.name}</h3>
+                                                <h3 className="text-base font-bold text-slate-900">{s.name}</h3>
                                                 <div className="flex items-center gap-2">
                                                     <Link href={`/profile/${s.founder_id}`} className="text-[10px] font-black uppercase tracking-widest text-[#3d522b] hover:underline">
                                                         {s.founder?.full_name || 'Ecosystem Founder'}
@@ -260,7 +260,7 @@ export default function Dashboard() {
                                             
                                             {activeMenu === s._id && (
                                                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 z-[60] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
-                                                    {(s.founder_id === user?.id) && (
+                                                    {(s.founder_id === user?.id || s.founder_id === user?._id) && (
                                                         <button 
                                                             onClick={() => router.push(`/startups/${s._id}/edit`)}
                                                             className="w-full flex items-center gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-[#3d522b] transition-all"
@@ -302,14 +302,14 @@ export default function Dashboard() {
                                             <div className="mb-6 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
                                                 {images.length === 1 && (
                                                     <div className="w-full relative bg-slate-50 flex items-center justify-center overflow-hidden">
-                                                        <img src={images[0]} alt={`${s.name} asset`} className="w-full max-h-[600px] object-cover hover:scale-105 transition-transform duration-700" />
+                                                        <img src={images[0]} alt={`${s.name} asset`} className="w-full max-h-[600px] object-cover" />
                                                     </div>
                                                 )}
                                                 {images.length === 2 && (
                                                     <div className="grid grid-cols-2 gap-1">
                                                         {images.map((img: string, idx: number) => (
                                                             <div key={idx} className="relative aspect-square bg-slate-50 overflow-hidden">
-                                                                <img src={img} alt={`${s.name} asset ${idx+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                                                                <img src={img} alt={`${s.name} asset ${idx+1}`} className="w-full h-full object-cover" />
                                                             </div>
                                                         ))}
                                                     </div>
@@ -317,12 +317,12 @@ export default function Dashboard() {
                                                 {images.length === 3 && (
                                                     <div className="flex flex-col gap-1">
                                                         <div className="w-full relative aspect-video bg-slate-50 overflow-hidden">
-                                                            <img src={images[0]} alt={`${s.name} asset 1`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                                                            <img src={images[0]} alt={`${s.name} asset 1`} className="w-full h-full object-cover" />
                                                         </div>
                                                         <div className="grid grid-cols-2 gap-1">
                                                             {images.slice(1, 3).map((img: string, idx: number) => (
                                                                 <div key={idx} className="relative aspect-[4/3] bg-slate-50 overflow-hidden">
-                                                                    <img src={img} alt={`${s.name} asset ${idx+2}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                                                                    <img src={img} alt={`${s.name} asset ${idx+2}`} className="w-full h-full object-cover" />
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -331,12 +331,12 @@ export default function Dashboard() {
                                                 {images.length >= 4 && (
                                                     <div className="flex flex-col gap-1">
                                                         <div className="w-full relative aspect-video bg-slate-50 overflow-hidden">
-                                                            <img src={images[0]} alt={`${s.name} asset 1`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                                                            <img src={images[0]} alt={`${s.name} asset 1`} className="w-full h-full object-cover" />
                                                         </div>
                                                         <div className="grid grid-cols-3 gap-1">
                                                             {images.slice(1, 4).map((img: string, idx: number) => (
                                                                 <div key={idx} className="relative aspect-[4/3] bg-slate-50 overflow-hidden group">
-                                                                    <img src={img} alt={`${s.name} asset ${idx+2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                                                    <img src={img} alt={`${s.name} asset ${idx+2}`} className="w-full h-full object-cover" />
                                                                     {idx === 2 && images.length > 4 && (
                                                                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors">
                                                                             <span className="text-white text-3xl font-semibold">+{images.length - 4}</span>
