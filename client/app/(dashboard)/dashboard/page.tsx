@@ -30,7 +30,8 @@ import {
     Activity,
     Edit3,
     ExternalLink,
-    Trash
+    Trash,
+    X
 } from 'lucide-react';
 
 export default function Dashboard() {
