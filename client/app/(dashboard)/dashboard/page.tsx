@@ -45,6 +45,16 @@ export default function Dashboard() {
     const [likesData, setLikesData] = useState<any[]>([]);
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
+    // Lock body scroll on dashboard mount, restore on unmount
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        document.body.style.height = '100vh';
+        return () => {
+            document.body.style.overflow = '';
+            document.body.style.height = '';
+        };
+    }, []);
+
     useEffect(() => {
         const checkUser = async () => {
             const currentUser = auth.getUser();
@@ -104,10 +114,6 @@ export default function Dashboard() {
 
     return (
         <>
-            {/* Lock body scroll on dashboard */}
-            <style dangerouslySetInnerHTML={{__html: `
-                body { overflow: hidden !important; height: 100vh !important; }
-            `}} />
             <div style={{position: 'fixed', top: '80px', left: 0, right: 0, bottom: 0, background: '#f8faf7', display: 'flex', justifyContent: 'center', zIndex: 1}}>
                 <div style={{width: '100%', maxWidth: '1280px', display: 'flex', gap: '1.5rem', padding: '0 1.5rem', height: '100%'}}>
 
