@@ -113,10 +113,10 @@ export default function Dashboard() {
                 <User className="text-slate-400 h-6 w-6" />
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 lg:grid-cols-12 gap-6 relative lg:items-start">
 
                 {/* Left Sidebar: Profile Card */}
-                <div className="lg:col-span-3 space-y-4">
+                <div className="lg:col-span-3 space-y-4 lg:sticky lg:top-24">
                     <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200">
                         <div className="h-16 olive-gradient w-full"></div>
                         <div className="px-5 pb-6">
@@ -358,7 +358,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Right Sidebar: Trends & Suggested */}
-                <div className="lg:col-span-3 space-y-6">
+                <div className="lg:col-span-3 space-y-6 lg:sticky lg:top-24">
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-sm font-black uppercase tracking-widest text-[#3d522b]">Sector Signals</h3>
