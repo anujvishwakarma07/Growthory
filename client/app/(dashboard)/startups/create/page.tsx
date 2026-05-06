@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/auth';
+import { auth, API_URL } from '@/lib/auth';
 import Button from '@/components/ui/Button';
 import { Rocket, Sparkles, AlertCircle, ArrowLeft, CheckCircle2, Zap, Target, ArrowRight, X } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
