@@ -294,23 +294,62 @@ export default function Dashboard() {
                                     </p>
 
                                     {/* Image Gallery */}
-                                    {((s.image_urls && s.image_urls.length > 0) || s.image_url) && (
-                                        <div className="mb-6 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
-                                            <div className={`grid gap-1 ${
-                                                (s.image_urls?.length || (s.image_url ? 1 : 0)) > 1 ? 'grid-cols-2' : 'grid-cols-1'
-                                            }`}>
-                                                {(s.image_urls && s.image_urls.length > 0 ? s.image_urls : [s.image_url]).slice(0, 4).map((img: string, idx: number) => (
-                                                    <div key={idx} className="relative aspect-video bg-slate-50">
-                                                        <img 
-                                                            src={img} 
-                                                            alt={`${s.name} asset`} 
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                                        />
+                                    {(() => {
+                                        const images = s.image_urls && s.image_urls.length > 0 ? s.image_urls : (s.image_url ? [s.image_url] : []);
+                                        if (images.length === 0) return null;
+                                        
+                                        return (
+                                            <div className="mb-6 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
+                                                {images.length === 1 && (
+                                                    <div className="w-full relative bg-slate-50 flex items-center justify-center overflow-hidden">
+                                                        <img src={images[0]} alt={`${s.name} asset`} className="w-full max-h-[600px] object-cover hover:scale-105 transition-transform duration-700" />
                                                     </div>
-                                                ))}
+                                                )}
+                                                {images.length === 2 && (
+                                                    <div className="grid grid-cols-2 gap-1">
+                                                        {images.map((img: string, idx: number) => (
+                                                            <div key={idx} className="relative aspect-square bg-slate-50 overflow-hidden">
+                                                                <img src={img} alt={`${s.name} asset ${idx+1}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {images.length === 3 && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="w-full relative aspect-video bg-slate-50 overflow-hidden">
+                                                            <img src={images[0]} alt={`${s.name} asset 1`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-1">
+                                                            {images.slice(1, 3).map((img: string, idx: number) => (
+                                                                <div key={idx} className="relative aspect-[4/3] bg-slate-50 overflow-hidden">
+                                                                    <img src={img} alt={`${s.name} asset ${idx+2}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {images.length >= 4 && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="w-full relative aspect-video bg-slate-50 overflow-hidden">
+                                                            <img src={images[0]} alt={`${s.name} asset 1`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" />
+                                                        </div>
+                                                        <div className="grid grid-cols-3 gap-1">
+                                                            {images.slice(1, 4).map((img: string, idx: number) => (
+                                                                <div key={idx} className="relative aspect-[4/3] bg-slate-50 overflow-hidden group">
+                                                                    <img src={img} alt={`${s.name} asset ${idx+2}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                                                    {idx === 2 && images.length > 4 && (
+                                                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors">
+                                                                            <span className="text-white text-3xl font-semibold">+{images.length - 4}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
 
                                     <div className="flex flex-wrap gap-2 mb-6">
                                         <span className="px-3 py-1 bg-[#3d522b]/10 text-[#3d522b] rounded-full text-[10px] font-black uppercase tracking-widest">{s.industry}</span>
