@@ -1,5 +1,9 @@
 // Auth helper for MongoDB + JWT
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+let API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// Clean up trailing slashes if present
+if (API_URL.endsWith('/')) {
+    API_URL = API_URL.slice(0, -1);
+}
 
 export const auth = {
     async login(email, password) {
