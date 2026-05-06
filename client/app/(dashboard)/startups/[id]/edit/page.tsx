@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { auth, API_URL } from '@/lib/auth';
 import Button from '@/components/ui/Button';
-import { Rocket, Sparkles, AlertCircle, ArrowLeft, Zap, Target, ArrowRight, X, Trash2, Save } from 'lucide-react';
+import { Rocket, Sparkles, AlertCircle, ArrowLeft, Zap, Target, ArrowRight, X, Trash2, Save, Plus } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 
 export default function EditStartup() {
