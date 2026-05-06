@@ -42,22 +42,48 @@ export default function ProfilePage() {
                 return;
             }
 
-            setUser(currentUser);
-            setProfileData({
-                full_name: currentUser.full_name || '',
-                bio: currentUser.bio || '',
-                role: currentUser.role || 'founder',
-                location: currentUser.location || '',
-                company: currentUser.company || '',
-                linkedin_url: currentUser.linkedin_url || '',
-                skills: currentUser.skills || [],
-                experience_years: currentUser.experience_years || 0
+            // Fetch fresh data from API to sync with database
+            const token = auth.getToken();
+            const userRes = await fetch(`${API_URL}/users/${currentUser.id || currentUser._id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-            setAvatarPreview(currentUser.avatar_url || null);
-            setBannerPreview(currentUser.banner_url || null);
+            const freshUser = await userRes.json();
+            
+            if (freshUser && !freshUser.error) {
+                // Update local storage and state with fresh data
+                const updatedUser = { ...currentUser, ...freshUser };
+                localStorage.setItem('growthory_user', JSON.stringify(updatedUser));
+                setUser(updatedUser);
+                setProfileData({
+                    full_name: freshUser.full_name || '',
+                    bio: freshUser.bio || '',
+                    role: freshUser.role || 'founder',
+                    location: freshUser.location || '',
+                    company: freshUser.company || '',
+                    linkedin_url: freshUser.linkedin_url || '',
+                    skills: freshUser.skills || [],
+                    experience_years: freshUser.experience_years || 0
+                });
+                setAvatarPreview(freshUser.avatar_url || null);
+                setBannerPreview(freshUser.banner_url || null);
+            } else {
+                // Fallback to local storage if API fails
+                setUser(currentUser);
+                setProfileData({
+                    full_name: currentUser.full_name || '',
+                    bio: currentUser.bio || '',
+                    role: currentUser.role || 'founder',
+                    location: currentUser.location || '',
+                    company: currentUser.company || '',
+                    linkedin_url: currentUser.linkedin_url || '',
+                    skills: currentUser.skills || [],
+                    experience_years: currentUser.experience_years || 0
+                });
+                setAvatarPreview(currentUser.avatar_url || null);
+                setBannerPreview(currentUser.banner_url || null);
+            }
 
             if (currentUser.role === 'founder') {
-                const token = auth.getToken();
                 const res = await fetch(`${API_URL}/startups`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
