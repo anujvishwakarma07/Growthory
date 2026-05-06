@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { auth, API_URL } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
-import { User, Mail, Briefcase, MapPin, Calendar, Edit, Save, ArrowLeft, Shield, TrendingUp, Award, Target, Sparkles, Rocket, Building2, Linkedin, ExternalLink, Plus, X } from 'lucide-react';
+import { MapPin, Calendar, Edit, Save, ArrowLeft, Linkedin, ExternalLink, Plus, X, Building2, Briefcase, Camera } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/components/ui/ToastProvider';
 
@@ -57,7 +57,7 @@ export default function ProfilePage() {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const startups = await res.json();
-                const myCol = Array.isArray(startups) ? startups.find((s: any) => s.founder_id === currentUser.id) : null;
+                const myCol = Array.isArray(startups) ? startups.find((s: any) => s.founder_id === currentUser.id || s.founder_id === currentUser._id || s.founder?._id === currentUser.id || s.founder?._id === currentUser._id) : null;
                 setMyStartup(myCol);
             }
         } catch (err: any) {
@@ -111,265 +111,240 @@ export default function ProfilePage() {
         setProfileData({ ...profileData, skills: profileData.skills.filter(s => s !== skill) });
     };
 
-    const joinedDate = user?.created_at || user?.createdAt 
-        ? new Date(user.created_at || user.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) 
-        : 'Classified';
-
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#f8faf7] flex items-center justify-center">
-                <div className="animate-spin h-8 w-8 border-4 border-[#3d522b] border-t-transparent rounded-full"></div>
+            <div className="min-h-screen bg-[#F3F2EF] flex items-center justify-center">
+                <div className="animate-spin h-8 w-8 border-4 border-[#0a66c2] border-t-transparent rounded-full"></div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-[#f8faf7] text-slate-800 pt-32 pb-20 px-4 md:px-6 selection:bg-[#3d522b]/20">
-            <div className="max-w-5xl mx-auto">
-                 {/* Top Navigation */}
-                <div className="flex items-center mb-10 pl-2">
-                    <button onClick={() => router.back()} className="h-12 w-12 rounded-[1.2rem] bg-white border border-slate-200 flex items-center justify-center hover:bg-[#3d522b] hover:text-white hover:border-[#3d522b] transition-all shadow-sm group">
-                        <ArrowLeft className="h-5 w-5 text-slate-400 group-hover:text-white transition-colors" />
-                    </button>
-                    <div className="ml-6">
-                        <h1 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-1">Identity Management</h1>
-                        <p className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">Security Dossier</p>
-                    </div>
-                </div>
+        <div className="min-h-screen bg-[#F3F2EF] text-slate-900 pt-24 pb-20 px-4 sm:px-6">
+            <div className="max-w-4xl mx-auto space-y-4">
+                {/* Back button */}
+                <button onClick={() => router.back()} className="flex items-center text-sm font-semibold text-slate-600 hover:text-slate-900 mb-4 group transition-colors">
+                    <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                    Back to Dashboard
+                </button>
 
-                {/* Immersive Profile Card (Dossier) */}
-                <div className="relative bg-white rounded-[3rem] p-1 shadow-2xl shadow-indigo-900/5 overflow-hidden">
-                    <div className="bg-slate-900 rounded-[2.8rem] w-full relative overflow-hidden flex flex-col md:flex-row shadow-inner">
-                        <div className="absolute top-0 left-0 bottom-0 w-2 bg-gradient-to-b from-[#3d522b] via-emerald-600 to-[#3d522b]"></div>
-                        
-                        <div className="w-full md:w-[350px] bg-slate-800/90 p-10 flex flex-col items-center justify-center relative border-b md:border-b-0 md:border-r border-slate-700/50">
-                            <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#10b981 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-                            
-                            <div className="relative mb-8 group mt-6">
-                                <div className="absolute -inset-4 rounded-full bg-gradient-to-br from-[#3d522b] to-emerald-600 opacity-20 animate-pulse blur-xl group-hover:opacity-40 transition-opacity duration-700"></div>
-                                <div className="h-44 w-44 rounded-full bg-slate-900 border-4 border-slate-800 shadow-[0_0_40px_rgba(0,0,0,0.5)] flex items-center justify-center text-7xl font-black text-white relative z-10 overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-[#3d522b]/40 to-slate-900"></div>
-                                    <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-br from-white to-slate-400 drop-shadow-md">
-                                        {profileData.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
-                                    </span>
+                {/* Main Profile Card */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
+                    {/* Cover Photo */}
+                    <div className="h-48 w-full bg-slate-200 relative overflow-hidden group">
+                        <img src="https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=2029&auto=format&fit=crop" className="w-full h-full object-cover" alt="Cover" />
+                        {editing && (
+                            <div className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md cursor-pointer hover:bg-slate-50 transition-colors">
+                                <Camera className="h-5 w-5 text-[#0a66c2]" />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="px-6 pb-6 sm:px-8 sm:pb-8">
+                        {/* Avatar & Top Actions */}
+                        <div className="flex justify-between items-start -mt-20 mb-4">
+                            <div className="relative group">
+                                <div className="h-36 w-36 rounded-full border-4 border-white bg-slate-100 flex items-center justify-center text-5xl font-semibold text-slate-600 overflow-hidden shadow-sm relative z-10">
+                                    {profileData.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                                </div>
+                                {editing && (
+                                    <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Camera className="h-8 w-8 text-white" />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="pt-24">
+                                {!editing && (
+                                    <button 
+                                        onClick={() => setEditing(true)}
+                                        className="h-9 px-4 rounded-full border border-slate-500 text-slate-600 font-semibold text-sm hover:bg-slate-50 hover:border-slate-700 hover:shadow-sm transition-all flex items-center gap-2"
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                        <span className="hidden sm:inline">Edit Profile</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Profile Info */}
+                        {editing ? (
+                            <div className="space-y-6 mt-6 animate-in fade-in duration-300">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+                                        <input
+                                            type="text"
+                                            value={profileData.full_name}
+                                            onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
+                                            className="w-full bg-transparent border border-slate-400 rounded p-2 text-sm text-slate-900 focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Company / Organization</label>
+                                        <input
+                                            type="text"
+                                            value={profileData.company}
+                                            onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
+                                            className="w-full bg-transparent border border-slate-400 rounded p-2 text-sm text-slate-900 focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Location</label>
+                                        <input
+                                            type="text"
+                                            value={profileData.location}
+                                            onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
+                                            className="w-full bg-transparent border border-slate-400 rounded p-2 text-sm text-slate-900 focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-1">Experience (Years)</label>
+                                        <input
+                                            type="number"
+                                            value={profileData.experience_years}
+                                            onChange={(e) => setProfileData({ ...profileData, experience_years: parseInt(e.target.value) })}
+                                            className="w-full bg-transparent border border-slate-400 rounded p-2 text-sm text-slate-900 focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">LinkedIn Profile URL</label>
+                                    <input
+                                        type="text"
+                                        value={profileData.linkedin_url}
+                                        onChange={(e) => setProfileData({ ...profileData, linkedin_url: e.target.value })}
+                                        className="w-full bg-transparent border border-slate-400 rounded p-2 text-sm text-slate-900 focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] outline-none transition-all"
+                                        placeholder="https://linkedin.com/in/username"
+                                    />
+                                </div>
+                                <div className="flex gap-3 justify-end pt-4 border-t border-slate-200 mt-6">
+                                    <button
+                                        onClick={() => { setEditing(false); loadUserProfile(); }}
+                                        className="px-5 py-1.5 rounded-full font-semibold text-slate-600 hover:bg-slate-100 transition-colors border border-transparent"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={saving}
+                                        className="px-5 py-1.5 rounded-full font-semibold text-white bg-[#0a66c2] hover:bg-[#004182] transition-colors border border-transparent"
+                                    >
+                                        {saving ? 'Saving...' : 'Save'}
+                                    </button>
                                 </div>
                             </div>
-                            
-                            <div className="text-center relative z-10 w-full">
-                                <div className="inline-flex py-1.5 px-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono uppercase tracking-[0.3em] mb-5">
-                                    <span className="h-1.5 w-1.5 bg-emerald-400 rounded-full mr-2 shadow-[0_0_5px_#34d399]"></span>
-                                    Status: Active
-                                </div>
-                                <h2 className="text-3xl font-black uppercase tracking-tight text-white leading-[1.1] mb-2 truncate px-2">
-                                    {profileData.full_name || 'Classified Node'}
-                                </h2>
-                                <p className="text-emerald-400 font-black text-[10px] uppercase tracking-widest mb-8 opacity-80">
-                                    {profileData.role === 'founder' ? 'Founder Protocol' : profileData.role === 'investor' ? 'Capital Interface' : 'Professional Asset'}
+                        ) : (
+                            <div className="animate-in fade-in duration-300">
+                                <h1 className="text-2xl font-semibold text-slate-900">{profileData.full_name || 'Anonymous User'}</h1>
+                                <p className="text-base text-slate-900 mt-1">{profileData.company ? `${profileData.role === 'founder' ? 'Founder' : 'Investor'} at ${profileData.company}` : `${profileData.role === 'founder' ? 'Founder' : 'Investor'}`}</p>
+                                <p className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+                                    {profileData.location && <span>{profileData.location} &bull; </span>}
+                                    <span className="font-medium text-[#0a66c2] hover:underline cursor-pointer">Contact info</span>
                                 </p>
-
-                                <div className="w-full bg-slate-900/80 border border-slate-700/50 rounded-2xl p-5 flex flex-col gap-4 text-left">
-                                    <div className="flex items-center gap-3">
-                                        <Mail className="h-4 w-4 text-slate-500" />
-                                        <span className="text-emerald-50 font-mono text-[10px] truncate">{user?.email}</span>
-                                    </div>
-                                    {profileData.location && (
-                                        <div className="flex items-center gap-3">
-                                            <MapPin className="h-4 w-4 text-slate-500" />
-                                            <span className="text-emerald-50 font-mono text-[10px] uppercase tracking-wider truncate">{profileData.location}</span>
-                                        </div>
-                                    )}
+                                
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#dcf8c6] text-[#0f5132] text-sm font-semibold border border-[#c3e6cb]">
+                                        Open to work
+                                    </span>
                                     {profileData.linkedin_url && (
-                                        <a href={profileData.linkedin_url} target="_blank" className="flex items-center gap-3 text-emerald-400 hover:text-emerald-300 transition-colors">
-                                            <Linkedin className="h-4 w-4" />
-                                            <span className="font-mono text-[10px] uppercase tracking-wider">Network Link</span>
+                                        <a href={profileData.linkedin_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-slate-500 text-slate-600 hover:bg-slate-50 hover:border-slate-700 hover:shadow-sm transition-all text-sm font-semibold">
+                                            <Linkedin className="h-4 w-4" /> LinkedIn
                                         </a>
                                     )}
                                 </div>
                             </div>
-                        </div>
+                        )}
+                    </div>
+                </div>
 
-                        <div className="flex-1 bg-slate-50 p-6 sm:p-10 md:p-12 relative flex flex-col min-h-[600px]">
-                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10 pb-6 border-b border-slate-200/60 relative z-10">
-                                <h2 className="text-xl font-black uppercase tracking-[0.2em] text-slate-900 flex items-center gap-3">
-                                    <Shield className="h-6 w-6 text-[#3d522b]" /> Core Details
-                                </h2>
-                                {!editing ? (
-                                    <Button
-                                        onClick={() => setEditing(true)}
-                                        className="h-12 px-6 rounded-2xl font-black uppercase text-[10px] tracking-widest text-[#3d522b] bg-white border border-[#3d522b]/20 hover:bg-[#3d522b] hover:text-white transition-all shadow-sm"
-                                    >
-                                        <Edit className="h-3.5 w-3.5 mr-2" /> Modify Record
-                                    </Button>
-                                ) : (
-                                    <div className="flex gap-2 w-full sm:w-auto">
-                                        <Button
-                                            onClick={() => {
-                                                setEditing(false);
-                                                loadUserProfile();
-                                            }}
-                                            variant="secondary"
-                                            className="h-12 px-6 rounded-2xl font-black uppercase text-[10px] bg-white text-slate-500 border border-slate-200 hover:bg-slate-100"
-                                        >
-                                            Discard
-                                        </Button>
-                                        <Button
-                                            onClick={handleSave}
-                                            disabled={saving}
-                                            className="h-12 px-8 rounded-2xl font-black uppercase text-[10px] bg-[#3d522b] text-white"
-                                        >
-                                            {saving ? 'Transmitting...' : 'Commit'}
-                                        </Button>
-                                    </div>
+                {/* About Section */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden p-6 sm:p-8">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-semibold text-slate-900">About</h2>
+                        {!editing && (
+                            <button onClick={() => setEditing(true)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600">
+                                <Edit className="h-5 w-5" />
+                            </button>
+                        )}
+                    </div>
+                    {editing ? (
+                        <div>
+                            <textarea
+                                rows={4}
+                                value={profileData.bio}
+                                onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                                className="w-full bg-transparent border border-slate-400 rounded p-3 text-sm text-slate-900 focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] outline-none transition-all resize-none"
+                                placeholder="Write a summary about yourself..."
+                            />
+                        </div>
+                    ) : (
+                        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                            {profileData.bio || 'No summary provided yet.'}
+                        </p>
+                    )}
+                </div>
+
+                {/* Skills Section */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden p-6 sm:p-8">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-semibold text-slate-900">Skills</h2>
+                        {editing && (
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={newSkill}
+                                    onChange={(e) => setNewSkill(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                                    className="w-48 bg-transparent border border-slate-400 rounded px-3 py-1 text-sm text-slate-900 focus:border-[#0a66c2] focus:ring-1 focus:ring-[#0a66c2] outline-none transition-all"
+                                    placeholder="Add a skill..."
+                                />
+                                <button onClick={addSkill} className="px-3 py-1 rounded text-white bg-[#0a66c2] hover:bg-[#004182] font-semibold text-sm transition-colors">
+                                    Add
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="space-y-4">
+                        {profileData.skills.length > 0 ? profileData.skills.map((skill, idx) => (
+                            <div key={idx} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0 last:pb-0">
+                                <div className="font-semibold text-slate-800 text-sm">{skill}</div>
+                                {editing && (
+                                    <button onClick={() => removeSkill(skill)} className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-500 rounded-full transition-colors">
+                                        <X className="h-4 w-4" />
+                                    </button>
                                 )}
                             </div>
+                        )) : (
+                            <p className="text-sm text-slate-500">No skills added yet.</p>
+                        )}
+                    </div>
+                </div>
 
-                            <div className="flex-1 relative z-10">
-                            {editing ? (
-                                <div className="space-y-6 max-w-2xl">
-                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Display Name</label>
-                                            <input
-                                                type="text"
-                                                value={profileData.full_name}
-                                                onChange={(e) => setProfileData({ ...profileData, full_name: e.target.value })}
-                                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm font-bold text-slate-900 focus:border-[#3d522b] outline-none transition-all"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Organization</label>
-                                            <input
-                                                type="text"
-                                                value={profileData.company}
-                                                onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
-                                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm font-bold text-slate-900 focus:border-[#3d522b] outline-none transition-all"
-                                            />
-                                        </div>
-                                     </div>
-                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div>
-                                            <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Location</label>
-                                            <input
-                                                type="text"
-                                                value={profileData.location}
-                                                onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm font-bold text-slate-900 focus:border-[#3d522b] outline-none transition-all"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Experience (Years)</label>
-                                            <input
-                                                type="number"
-                                                value={profileData.experience_years}
-                                                onChange={(e) => setProfileData({ ...profileData, experience_years: parseInt(e.target.value) })}
-                                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm font-bold text-slate-900 focus:border-[#3d522b] outline-none transition-all"
-                                            />
-                                        </div>
-                                     </div>
-                                     <div>
-                                        <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">LinkedIn Profile URL</label>
-                                        <input
-                                            type="text"
-                                            value={profileData.linkedin_url}
-                                            onChange={(e) => setProfileData({ ...profileData, linkedin_url: e.target.value })}
-                                            className="w-full bg-white border border-slate-200 rounded-xl p-4 text-sm font-bold text-slate-900 focus:border-[#3d522b] outline-none transition-all"
-                                            placeholder="https://linkedin.com/in/username"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Mission Statement (Bio)</label>
-                                        <textarea
-                                            rows={4}
-                                            value={profileData.bio}
-                                            onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
-                                            className="w-full bg-white border border-slate-200 rounded-2xl p-5 text-sm font-bold text-slate-900 focus:border-[#3d522b] outline-none transition-all resize-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Specializations & Skills</label>
-                                        <div className="flex gap-2 mb-3">
-                                            <input
-                                                type="text"
-                                                value={newSkill}
-                                                onChange={(e) => setNewSkill(e.target.value)}
-                                                onKeyPress={(e) => e.key === 'Enter' && addSkill()}
-                                                className="flex-1 bg-white border border-slate-200 rounded-xl p-3 text-sm font-bold text-slate-900 focus:border-[#3d522b] outline-none"
-                                                placeholder="Add a skill..."
-                                            />
-                                            <Button onClick={addSkill} className="px-4 rounded-xl bg-slate-900 text-white"><Plus className="h-4 w-4" /></Button>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {profileData.skills.map((skill, idx) => (
-                                                <div key={idx} className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-2">
-                                                    {skill}
-                                                    <button onClick={() => removeSkill(skill)}><X className="h-3 w-3" /></button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-8">
-                                    <div className="bg-white border border-slate-200 shadow-sm rounded-[2rem] p-8 md:p-10 relative overflow-hidden group">
-                                         <h3 className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mb-6">
-                                            <Briefcase className="h-3.5 w-3.5" /> Mission Profile
-                                         </h3>
-                                         <p className="text-slate-800 text-lg md:text-xl font-medium leading-[1.8]">
-                                             "{profileData.bio || 'Dossier description pending initialization...'}"
-                                         </p>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="bg-white border border-slate-200 rounded-[2rem] p-8">
-                                            <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-5 flex items-center gap-2">
-                                                <Award className="h-3 w-3" /> Specializations
-                                            </h4>
-                                            <div className="flex flex-wrap gap-2">
-                                                {profileData.skills.length > 0 ? profileData.skills.map((skill, idx) => (
-                                                    <span key={idx} className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider">
-                                                        {skill}
-                                                    </span>
-                                                )) : <span className="text-slate-300 text-[10px] font-bold uppercase italic">No skill tags listed</span>}
-                                            </div>
-                                        </div>
-
-                                        <div className="bg-white border border-slate-200 rounded-[2rem] p-8 flex flex-col justify-between">
-                                            <div>
-                                                <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mb-5 flex items-center gap-2">
-                                                    <TrendingUp className="h-3 w-3" /> Professional Stature
-                                                </h4>
-                                                <div className="flex items-end gap-3">
-                                                    <span className="text-4xl font-black text-slate-900 leading-none">{profileData.experience_years}</span>
-                                                    <span className="text-[10px] font-black uppercase text-slate-400 mb-1">Years of Signal</span>
-                                                </div>
-                                            </div>
-                                            <div className="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
-                                                <span className="text-[9px] font-black uppercase text-slate-400">Current Base</span>
-                                                <span className="text-[10px] font-black text-slate-900 uppercase">{profileData.company || 'Private'}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {profileData.role === 'founder' && myStartup && (
-                                        <div onClick={() => router.push(`/dashboard/startups`)} className="bg-[#3d522b] text-white rounded-[2rem] p-8 flex items-center justify-between group cursor-pointer hover:bg-[#2d3f1f] transition-all">
-                                            <div className="flex items-center gap-6">
-                                                <div className="h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center">
-                                                    <Rocket className="h-8 w-8 text-white" />
-                                                </div>
-                                                <div>
-                                                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50 mb-1">Current Protocol</h4>
-                                                    <p className="text-2xl font-black uppercase tracking-tight">{myStartup.name}</p>
-                                                </div>
-                                            </div>
-                                            <ExternalLink className="h-6 w-6 text-white/30 group-hover:text-white transition-colors" />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                {/* Experience / Startup Section */}
+                {profileData.role === 'founder' && myStartup && (
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden p-6 sm:p-8">
+                        <h2 className="text-xl font-semibold text-slate-900 mb-6">Experience</h2>
+                        <div className="flex gap-4">
+                            <div className="h-14 w-14 bg-slate-100 rounded flex-shrink-0 flex items-center justify-center overflow-hidden border border-slate-200 shadow-sm">
+                                {myStartup.logo_url ? <img src={myStartup.logo_url} className="w-full h-full object-cover" /> : <Building2 className="h-6 w-6 text-slate-400" />}
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-base font-semibold text-slate-900">{myStartup.name}</h3>
+                                <p className="text-sm text-slate-900">Founder</p>
+                                <p className="text-sm text-slate-500 mt-0.5">{myStartup.industry} &bull; {myStartup.stage}</p>
+                                <p className="text-sm text-slate-700 mt-3 leading-relaxed">{myStartup.tagline}</p>
+                            </div>
+                            <div>
+                                <button onClick={() => router.push(`/dashboard/startups`)} className="p-2 hover:bg-slate-100 rounded-full transition-colors group text-slate-500">
+                                    <ExternalLink className="h-5 w-5 group-hover:text-slate-900" />
+                                </button>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
