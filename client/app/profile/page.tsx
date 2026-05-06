@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { auth, API_URL } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
-import { MapPin, Edit, ArrowLeft, Linkedin, ExternalLink, Plus, X, Building2, Briefcase, Camera, CheckCircle2, Users, Target, Rocket, Shield, Award } from 'lucide-react';
+import { MapPin, Edit, ArrowLeft, Linkedin, ExternalLink, Plus, X, Building2, Briefcase, Camera, CheckCircle2, Users, Target, Rocket, Shield, Award, Mail } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { useToast } from '@/components/ui/ToastProvider';
 
