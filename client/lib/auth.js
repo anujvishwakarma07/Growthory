@@ -8,6 +8,14 @@ export const auth = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password }),
         });
+        
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const text = await res.text();
+            console.error("Non-JSON response received:", text);
+            throw new Error(`Server returned a non-JSON response. This usually means the API URL is wrong or the server is down. (Status: ${res.status})`);
+        }
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Login failed');
         
@@ -24,6 +32,12 @@ export const auth = {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password, full_name, role }),
         });
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            throw new Error(`Server returned a non-JSON response. (Status: ${res.status})`);
+        }
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Signup failed');
         
@@ -63,6 +77,12 @@ export const auth = {
         const res = await fetch(`${API_URL}/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` },
         });
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            return null;
+        }
+
         if (!res.ok) {
             this.logout();
             return null;
