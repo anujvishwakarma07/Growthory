@@ -103,7 +103,7 @@ export default function Dashboard() {
     const fullName = user?.full_name || user?.email?.split('@')[0];
 
     return (
-        <div className="h-screen bg-[#f8faf7] text-slate-800 pt-20 overflow-hidden flex flex-col">
+        <div className="min-h-screen bg-[#f8faf7] text-slate-800 pb-20 pt-20">
             {/* Top Navigation - LinkedIn Style Mobile/Sub-Navbar */}
             <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 flex justify-around p-3">
                 <Home className="text-[#3d522b] h-6 w-6" />
@@ -113,10 +113,17 @@ export default function Dashboard() {
                 <User className="text-slate-400 h-6 w-6" />
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 md:px-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
+            <div className="max-w-7xl mx-auto px-4 md:px-6" style={{display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem', alignItems: 'start'}}>
+              <style dangerouslySetInnerHTML={{__html: `
+                @media (min-width: 1024px) {
+                  .dashboard-grid { display: grid !important; grid-template-columns: 3fr 6fr 3fr !important; }
+                  .sidebar-left, .sidebar-right { position: sticky !important; top: 5.5rem !important; align-self: start !important; }
+                }
+              `}} />
+              <div className="dashboard-grid" style={{display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem', alignItems: 'start'}}>
 
-                {/* Left Sidebar: Profile Card - fixed, no scroll */}
-                <div className="lg:col-span-3 space-y-4 overflow-y-auto py-4 hidden lg:block" style={{scrollbarWidth: 'none'}}>
+                {/* Left Sidebar: Profile Card */}
+                <div className="sidebar-left space-y-4 hidden lg:block">
                     <div className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200">
                         <div className="h-16 olive-gradient w-full"></div>
                         <div className="px-5 pb-6">
@@ -161,8 +168,8 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Center Content: The Startup Feed - this column scrolls */}
-                <div className="lg:col-span-6 space-y-6 overflow-y-auto py-4 pb-20" style={{scrollbarWidth: 'thin'}}>
+                {/* Center Content: The Startup Feed */}
+                <div className="space-y-6">
                     {/* Live Ecosystem Pulse Bar */}
                     {stats && (
                         <div className="bg-slate-900 rounded-xl shadow-xl overflow-hidden relative group">
@@ -358,7 +365,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Right Sidebar: Trends & Suggested */}
-                <div className="lg:col-span-3 space-y-6 overflow-y-auto py-4 hidden lg:block" style={{scrollbarWidth: 'none'}}>
+                <div className="sidebar-right space-y-6 hidden lg:block">
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-sm font-black uppercase tracking-widest text-[#3d522b]">Sector Signals</h3>
@@ -384,7 +391,7 @@ export default function Dashboard() {
                         </div>
                     </div>
                 </div>
-
+              </div>
             </div>
         </div>
     );
