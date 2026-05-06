@@ -9,6 +9,7 @@ const startupSchema = new mongoose.Schema({
     stage: { type: String },
     website: { type: String },
     logo_url: { type: String },
+    image_urls: [{ type: String }],
     pitch_deck_url: { type: String },
 }, { timestamps: true });
 

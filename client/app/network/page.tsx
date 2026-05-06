@@ -177,53 +177,52 @@ export default function NetworkPage() {
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
                 
                 {/* Abstract Header Deck */}
-                <div className="relative mb-12 bg-white rounded-[2.5rem] p-10 md:p-14 border border-slate-200 overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-                    <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-[#3d522b]/[0.03] rounded-full blur-[80px] pointer-events-none"></div>
-                    <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-[#3d522b]/[0.02] rounded-full blur-[80px] pointer-events-none"></div>
+                <div className="relative mb-16 bg-white rounded-[3rem] p-10 md:p-14 border border-[#3d522b]/10 overflow-hidden shadow-[0_20px_50px_rgba(61,82,43,0.03)]">
+                    {/* Atmospheric Effects */}
+                    <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-[#3d522b]/[0.03] rounded-full blur-[100px] pointer-events-none"></div>
+                    <div className="absolute -bottom-40 -left-40 w-[500px] h-[500px] bg-[#3d522b]/[0.02] rounded-full blur-[100px] pointer-events-none"></div>
                     
-                    <div className="relative z-10 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-12">
-                        <div className="max-w-2xl">
-                            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-[#3d522b]/5 border border-[#3d522b]/10 text-[#3d522b] text-[10px] font-black uppercase tracking-[0.3em] mb-8">
-                                <div className="h-2 w-2 rounded-full bg-[#3d522b] animate-pulse shadow-[0_0_8px_rgba(61,82,43,0.5)]"></div>
+                    <div className="relative z-10 flex flex-col xl:flex-row justify-between items-center gap-12">
+                        <div className="max-w-2xl text-center xl:text-left">
+                            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-[#3d522b]/5 border border-[#3d522b]/10 text-[#3d522b] text-[10px] font-black uppercase tracking-[0.4em] mb-8">
+                                <div className="h-2 w-2 rounded-full bg-[#3d522b] animate-ping"></div>
                                 Live Intelligence Node
                             </div>
-                            <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-slate-900 leading-[0.9] mb-6">
-                                The <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#3d522b] to-slate-900">Nexus</span>
+                            <h1 className="text-6xl md:text-8xl font-black uppercase tracking-tighter text-slate-900 leading-[0.85] mb-8">
+                                The <span className="text-[#3d522b]">Nexus</span>
                             </h1>
-                            <p className="text-slate-500 font-medium text-lg lg:text-xl leading-relaxed max-w-lg">
+                            <p className="text-slate-500 font-medium text-lg lg:text-xl leading-relaxed max-w-xl mx-auto xl:mx-0">
                                 Global mapping of active ecosystem signals. Identify, query, and uplink with high-value assets securely.
                             </p>
                         </div>
                         
-                        {/* Terminal Search Block */}
-                        <div className="w-full xl:w-auto bg-slate-900 rounded-[2rem] p-8 shadow-2xl relative border border-slate-800">
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-[#3d522b] to-emerald-500"></div>
+                        {/* Refined Search Area */}
+                        <div className="w-full xl:w-[450px] bg-[#f8faf7] rounded-[2.5rem] p-8 border border-[#3d522b]/10 shadow-inner">
                             <div className="flex flex-col gap-6 relative z-10">
                                 <div className="relative group">
-                                    <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none transition-transform group-focus-within:scale-110">
-                                        <Search className="h-5 w-5 text-emerald-400/50" />
+                                    <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+                                        <Search className="h-5 w-5 text-[#3d522b]/40 group-focus-within:text-[#3d522b] transition-colors" />
                                     </div>
                                     <input
                                         type="text"
-                                        placeholder="INPUT QUERY_STRING..."
-                                        className="w-full xl:w-[400px] bg-slate-800/40 border border-slate-700/50 rounded-2xl py-4 pl-14 pr-4 text-sm font-mono text-emerald-400 placeholder:text-emerald-400/30 focus:outline-none focus:border-emerald-400/50 focus:bg-slate-800 transition-all uppercase shadow-inner"
+                                        placeholder="Search ecosystem nodes..."
+                                        className="w-full bg-white border border-slate-200 rounded-2xl py-4 pl-14 pr-6 text-sm font-bold text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-[#3d522b]/30 focus:ring-4 focus:ring-[#3d522b]/5 transition-all shadow-sm"
                                         value={searchQuery}
                                         onChange={(e) => { setSearchQuery(e.target.value); fetchPeople(e.target.value, activeRole); }}
                                     />
-                                    {/* Scanline effect */}
-                                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-400/5 to-transparent h-[10px] w-full animate-[scan_3s_ease-in-out_infinite] opacity-50 pointer-events-none rounded-2xl"></div>
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                     {[
-                                        { id: 'all', label: 'ALL_NODES' },
-                                        { id: 'founder', label: 'FOUNDER' },
-                                        { id: 'investor', label: 'CAPITAL' },
-                                        { id: 'professional', label: 'TALENT' }
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { id: 'all', label: 'All Nodes' },
+                                        { id: 'founder', label: 'Founders' },
+                                        { id: 'investor', label: 'Capital' },
+                                        { id: 'professional', label: 'Talent' }
                                     ].map((r) => (
                                         <button
                                             key={r.id}
                                             onClick={() => { setActiveRole(r.id); fetchPeople(searchQuery, r.id); }}
-                                            className={`px-4 py-3 rounded-xl text-[10px] font-mono uppercase tracking-widest transition-all ${activeRole === r.id ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'bg-slate-800/80 border border-slate-700/50 text-slate-500 hover:text-emerald-400/70 hover:border-emerald-400/30'}`}
+                                            className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeRole === r.id ? 'bg-[#3d522b] text-white shadow-lg shadow-[#3d522b]/20' : 'bg-white border border-slate-200 text-slate-500 hover:border-[#3d522b]/30 hover:text-[#3d522b]'}`}
                                         >
                                             {r.label}
                                         </button>

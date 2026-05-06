@@ -1,14 +1,7 @@
 import ProfessionalProfile from '../models/ProfessionalProfile.js';
 import { createRequire } from 'module';
 import OpenAI from 'openai';
-import { v2 as cloudinary } from 'cloudinary';
-
-// Configure Cloudinary
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET
-});
+import { uploadToCloudinary } from '../utils/cloudinary.js';
 
 // Polyfill DOMMatrix for Node environments to prevent pdf-parse module loading error
 if (typeof global.DOMMatrix === 'undefined') {
@@ -21,20 +14,6 @@ const openai = new OpenAI({
     apiKey: process.env.OPENROUTER_API_KEY,
     baseURL: process.env.OPENAI_BASE_URL || "https://openrouter.ai/api/v1",
 });
-
-// Helper to upload buffer to Cloudinary directly
-const uploadToCloudinary = (buffer) => {
-    return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-            { resource_type: "auto" },
-            (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-            }
-        );
-        stream.end(buffer);
-    });
-};
 
 export const parseResume = async (req, res) => {
     try {

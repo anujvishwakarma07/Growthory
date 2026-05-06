@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import Button from '@/components/ui/Button';
-import { Rocket, Sparkles, AlertCircle, ArrowLeft, CheckCircle2, Zap, Target, ArrowRight } from 'lucide-react';
+import { Rocket, Sparkles, AlertCircle, ArrowLeft, CheckCircle2, Zap, Target, ArrowRight, X } from 'lucide-react';
 import { useToast } from '@/components/ui/ToastProvider';
 
 export default function CreateStartup() {
@@ -17,6 +17,7 @@ export default function CreateStartup() {
         website: '',
         stage: 'Pre-seed'
     });
+    const [images, setImages] = useState<File[]>([]);
     const [loading, setLoading] = useState(false);
     const [analyzing, setAnalyzing] = useState(false);
     const [aiResult, setAiResult] = useState<any>(null);
@@ -24,6 +25,17 @@ export default function CreateStartup() {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const newFiles = Array.from(e.target.files);
+            setImages(prev => [...prev, ...newFiles].slice(0, 5));
+        }
+    };
+
+    const removeImage = (index: number) => {
+        setImages(prev => prev.filter((_, i) => i !== index));
     };
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
@@ -39,22 +51,28 @@ export default function CreateStartup() {
             if (!currentUser) throw new Error("You must be logged in");
 
             const token = auth.getToken();
+            
+            const body = new FormData();
+            Object.entries(formData).forEach(([key, value]) => {
+                body.append(key, value);
+            });
+            body.append('founder_id', currentUser.id);
+            images.forEach(file => {
+                body.append('images', file);
+            });
+
             const response = await fetch(`${API_URL}/startups`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({
-                    ...formData,
-                    founder_id: currentUser.id
-                })
+                body
             });
 
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Failed to create startup');
 
-            toast.success('Startup created and analyzed!');
+            toast.success('Venture Initialized!');
             setAiResult(data.analysis);
             setLoading(false);
         } catch (err: any) {
@@ -154,51 +172,68 @@ export default function CreateStartup() {
                     <p className="text-slate-500 font-medium">Initialize your startup node for global discovery.</p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="bg-white rounded-[3.5rem] p-10 md:p-14 space-y-10 border border-slate-200 shadow-sm relative overflow-hidden">
+                <form onSubmit={handleSubmit} className="bg-white rounded-[2.5rem] p-8 md:p-12 space-y-8 border border-slate-200 shadow-sm relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-2 olive-gradient opacity-10"></div>
 
-                    <div className="space-y-8">
+                    <div className="space-y-6">
+                        {/* The 'Post' Content */}
                         <div>
-                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Startup Identity</label>
-                            <input
-                                name="name"
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#3d522b] mb-4 ml-1 flex items-center gap-2">
+                                <Sparkles className="h-3 w-3" /> What is your venture's vision?
+                            </label>
+                            <textarea
+                                name="description"
                                 required
-                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-slate-900 font-bold outline-none focus:border-[#3d522b] focus:bg-white transition-all shadow-sm sm:text-lg"
-                                placeholder="Unicorn Lab Inc."
-                                value={formData.name}
+                                rows={4}
+                                placeholder="Share your product's core mission and the problem you're solving..."
+                                className="w-full bg-white border-b border-slate-100 rounded-none p-0 py-2 text-slate-900 font-bold text-lg outline-none focus:border-[#3d522b] transition-all resize-none leading-relaxed placeholder:text-slate-300"
+                                value={formData.description}
                                 onChange={handleChange}
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Market Tagline</label>
-                            <input
-                                name="tagline"
-                                required
-                                placeholder="E.g. Neural matching for global capital"
-                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-slate-900 font-bold outline-none focus:border-[#3d522b] focus:bg-white transition-all shadow-sm"
-                                value={formData.tagline}
-                                onChange={handleChange}
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-50">
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Market Sector</label>
+                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Venture Name</label>
+                                <input
+                                    name="name"
+                                    required
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-4 text-slate-900 font-bold outline-none focus:border-[#3d522b] focus:bg-white transition-all shadow-sm"
+                                    placeholder="Unicorn Lab Inc."
+                                    value={formData.name}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Market Tagline</label>
+                                <input
+                                    name="tagline"
+                                    required
+                                    placeholder="Neural matching for capital"
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-4 text-slate-900 font-bold outline-none focus:border-[#3d522b] focus:bg-white transition-all shadow-sm"
+                                    value={formData.tagline}
+                                    onChange={handleChange}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Sector</label>
                                 <input
                                     name="industry"
                                     required
-                                    placeholder="Fintech / SaaS"
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-slate-900 font-bold outline-none focus:border-[#3d522b] focus:bg-white transition-all shadow-sm"
+                                    placeholder="Fintech"
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-4 text-slate-900 font-bold outline-none focus:border-[#3d522b] focus:bg-white transition-all shadow-sm"
                                     value={formData.industry}
                                     onChange={handleChange}
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Venture Stage</label>
+                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Stage</label>
                                 <select
                                     name="stage"
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-slate-900 font-bold outline-none focus:border-[#3d522b] focus:bg-white transition-all shadow-sm appearance-none cursor-pointer"
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-4 text-slate-900 font-bold outline-none focus:border-[#3d522b] focus:bg-white transition-all shadow-sm appearance-none"
                                     value={formData.stage}
                                     onChange={handleChange}
                                 >
@@ -208,33 +243,52 @@ export default function CreateStartup() {
                                     <option>Series B+</option>
                                 </select>
                             </div>
+                            <div>
+                                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Website</label>
+                                <input
+                                    name="website"
+                                    placeholder="https://..."
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-xl p-4 text-slate-900 font-bold outline-none focus:border-[#3d522b] focus:bg-white transition-all shadow-sm"
+                                    value={formData.website}
+                                    onChange={handleChange}
+                                />
+                            </div>
                         </div>
 
-                        <div>
-                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1 ml-1">Core Pitch & Problem Solved</label>
-                            <p className="text-[10px] text-[#3d522b] font-black uppercase mb-4 ml-1 italic opacity-60 flex items-center gap-1">
-                                <Sparkles className="h-3 w-3" /> AI will analyze this for your signal score.
-                            </p>
-                            <textarea
-                                name="description"
-                                required
-                                rows={6}
-                                placeholder="Describe your product, market fit, and unique vision in depth..."
-                                className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] p-8 text-slate-900 font-bold outline-none focus:border-[#3d522b] focus:bg-white transition-all shadow-sm resize-none leading-relaxed"
-                                value={formData.description}
-                                onChange={handleChange}
-                            />
-                        </div>
+                        <div className="pt-4 border-t border-slate-50">
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-[#3d522b] mb-4 ml-1">Add Media Visuals (Protocol Images)</label>
+                            <div className="space-y-4">
+                                <div className="relative group">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={handleFileChange}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    />
+                                    <div className={`w-full border-2 border-dashed ${images.length > 0 ? 'border-[#3d522b] bg-[#3d522b]/5' : 'border-slate-200 bg-slate-50'} rounded-2xl p-6 flex flex-col items-center justify-center transition-all group-hover:border-[#3d522b]/30`}>
+                                        <Rocket className={`h-6 w-6 mb-2 ${images.length > 0 ? 'text-[#3d522b]' : 'text-slate-300'}`} />
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Attach up to 5 photos</p>
+                                    </div>
+                                </div>
 
-                        <div>
-                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2 ml-1">Digital Presence (URL)</label>
-                            <input
-                                name="website"
-                                placeholder="https://growthory.ai"
-                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-slate-900 font-bold outline-none focus:border-[#3d522b] focus:bg-white transition-all shadow-sm"
-                                value={formData.website}
-                                onChange={handleChange}
-                            />
+                                {images.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {images.map((file, idx) => (
+                                            <div key={idx} className="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 group">
+                                                <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => removeImage(idx)}
+                                                    className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 

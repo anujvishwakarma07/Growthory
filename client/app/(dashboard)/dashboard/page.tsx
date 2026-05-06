@@ -227,6 +227,28 @@ export default function Dashboard() {
                                         {s.description_raw}
                                     </p>
 
+                                    {/* Image Gallery - LinkedIn Style */}
+                                    {((s.image_urls && s.image_urls.length > 0) || s.image_url) && (
+                                        <div className="mb-6 px-2">
+                                            <div className={`grid gap-2 ${
+                                                (s.image_urls?.length || (s.image_url ? 1 : 0)) > 1 ? 'grid-cols-2' : 'grid-cols-1'
+                                            }`}>
+                                                {(s.image_urls && s.image_urls.length > 0 ? s.image_urls : [s.image_url]).map((img: string, idx: number) => (
+                                                    <div key={idx} className="relative rounded-xl overflow-hidden border border-slate-100 shadow-sm bg-slate-50 aspect-video md:aspect-auto">
+                                                        <img 
+                                                            src={img} 
+                                                            alt={`${s.name} visualization ${idx + 1}`} 
+                                                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1551434678-e076c223a692?q=80&w=2070&auto=format&fit=crop'; // Technical fallback
+                                                            }}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <div className="flex flex-wrap gap-2 mb-6">
                                         <span className="px-3 py-1 bg-[#3d522b]/10 text-[#3d522b] rounded-full text-[10px] font-black uppercase tracking-widest">{s.industry}</span>
                                         <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest">{s.stage}</span>

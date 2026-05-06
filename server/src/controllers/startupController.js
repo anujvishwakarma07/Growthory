@@ -3,13 +3,32 @@ import StartupAnalysis from '../models/StartupAnalysis.js';
 import StartupLike from '../models/StartupLike.js';
 import StartupComment from '../models/StartupComment.js';
 import { analyzeStartupPitch } from '../utils/ai.js';
+import { uploadToCloudinary } from '../utils/cloudinary.js';
 
 export const createStartup = async (req, res) => {
     try {
         const { founder_id, name, tagline, description, industry, stage, website } = req.body;
 
+        let image_urls = [];
+        if (req.files && req.files.length > 0) {
+            try {
+                const uploadPromises = req.files.map(file => uploadToCloudinary(file.buffer));
+                const uploadResults = await Promise.all(uploadPromises);
+                image_urls = uploadResults.map(res => res.secure_url);
+            } catch (err) {
+                console.error("Batch image upload failed:", err);
+            }
+        }
+
         const startup = await Startup.create({
-            founder_id, name, tagline, description_raw: description, industry, stage, website
+            founder_id, 
+            name, 
+            tagline, 
+            description_raw: description, 
+            industry, 
+            stage, 
+            website,
+            image_urls
         });
 
         const analysis = await analyzeStartupPitch(description, name, industry);

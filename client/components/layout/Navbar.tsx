@@ -70,18 +70,20 @@ export default function Navbar() {
                 </Link>
 
                 {/* Desktop Navigation */}
-                <div className="hidden lg:flex items-center gap-8">
-                    {navLinks.map((link) => (
-                        <Link
-                            key={link.name}
-                            href={link.href}
-                            className={`text-sm font-bold uppercase tracking-widest flex items-center gap-2 transition-colors ${pathname === link.href ? 'text-[#3d522b]' : 'text-slate-500 hover:text-slate-900'}`}
-                        >
-                            <link.icon className="h-4 w-4" />
-                            {link.name}
-                        </Link>
-                    ))}
-                </div>
+                {user && (
+                    <div className="hidden lg:flex items-center gap-8">
+                        {navLinks.map((link) => (
+                            <Link
+                                key={link.name}
+                                href={link.href}
+                                className={`text-sm font-bold uppercase tracking-widest flex items-center gap-2 transition-colors ${pathname === link.href ? 'text-[#3d522b]' : 'text-slate-500 hover:text-slate-900'}`}
+                            >
+                                <link.icon className="h-4 w-4" />
+                                {link.name}
+                            </Link>
+                        ))}
+                    </div>
+                )}
 
                 {/* Desktop Actions */}
                 <div className="hidden lg:flex items-center gap-4">
@@ -156,7 +158,7 @@ export default function Navbar() {
             {/* Mobile Menu */}
             {isOpen && (
                 <div className="lg:hidden absolute top-20 left-0 w-full bg-white border-b border-slate-200 p-6 space-y-4 animate-in slide-in-from-top-2">
-                    {navLinks.map((link) => (
+                    {user && navLinks.map((link) => (
                         <Link
                             key={link.name}
                             href={link.href}
