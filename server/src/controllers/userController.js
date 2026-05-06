@@ -99,6 +99,8 @@ export const getStartupLikes = async (req, res) => {
     }
 };
 
+import { uploadToCloudinary } from '../utils/cloudinary.js';
+
 // Update user profile
 export const updateUserProfile = async (req, res) => {
     const userId = req.user.id;
@@ -108,12 +110,32 @@ export const updateUserProfile = async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: "User not found" });
 
+        if (req.files) {
+            if (req.files.avatar && req.files.avatar[0]) {
+                const result = await uploadToCloudinary(req.files.avatar[0].buffer);
+                user.avatar_url = result.secure_url;
+            }
+            if (req.files.banner && req.files.banner[0]) {
+                const result = await uploadToCloudinary(req.files.banner[0].buffer);
+                user.banner_url = result.secure_url;
+            }
+        }
+
         if (full_name) user.full_name = full_name;
         if (bio !== undefined) user.bio = bio;
         if (location !== undefined) user.location = location;
         if (company !== undefined) user.company = company;
         if (linkedin_url !== undefined) user.linkedin_url = linkedin_url;
-        if (skills !== undefined) user.skills = skills;
+        
+        let parsedSkills = skills;
+        if (typeof skills === 'string') {
+            try {
+                parsedSkills = JSON.parse(skills);
+            } catch (e) {
+                // Ignore parse error
+            }
+        }
+        if (parsedSkills !== undefined) user.skills = parsedSkills;
         if (experience_years !== undefined) user.experience_years = experience_years;
         
         if (ai_prefs) user.ai_prefs = { ...user.ai_prefs, ...ai_prefs };
@@ -129,6 +151,7 @@ export const updateUserProfile = async (req, res) => {
                 full_name: user.full_name,
                 role: user.role,
                 avatar_url: user.avatar_url,
+                banner_url: user.banner_url,
                 bio: user.bio,
                 location: user.location,
                 company: user.company,

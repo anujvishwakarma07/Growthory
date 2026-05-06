@@ -25,6 +25,10 @@ export default function ProfilePage() {
     });
     const [newSkill, setNewSkill] = useState('');
     const [myStartup, setMyStartup] = useState<any>(null);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const [bannerFile, setBannerFile] = useState<File | null>(null);
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
     useEffect(() => {
         loadUserProfile();
@@ -49,6 +53,8 @@ export default function ProfilePage() {
                 skills: currentUser.skills || [],
                 experience_years: currentUser.experience_years || 0
             });
+            setAvatarPreview(currentUser.avatar_url || null);
+            setBannerPreview(currentUser.banner_url || null);
 
             if (currentUser.role === 'founder') {
                 const token = auth.getToken();
@@ -72,13 +78,24 @@ export default function ProfilePage() {
         try {
             const token = auth.getToken();
             
-            const res = await fetch(`${API_URL}/users/profile`, {
+            const formData = new FormData();
+            formData.append('full_name', profileData.full_name);
+            formData.append('bio', profileData.bio);
+            formData.append('location', profileData.location);
+            formData.append('company', profileData.company);
+            formData.append('linkedin_url', profileData.linkedin_url);
+            formData.append('skills', JSON.stringify(profileData.skills));
+            formData.append('experience_years', profileData.experience_years.toString());
+            
+            if (avatarFile) formData.append('avatar', avatarFile);
+            if (bannerFile) formData.append('banner', bannerFile);
+
+            const res = await fetch(`${API_URL}/users/update-profile`, {
                 method: 'PUT',
                 headers: { 
-                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(profileData)
+                body: formData
             });
 
             const data = await res.json();
@@ -90,6 +107,8 @@ export default function ProfilePage() {
             toast.success('Profile updated successfully!');
             setUser(updatedUser);
             setEditing(false);
+            setAvatarFile(null);
+            setBannerFile(null);
         } catch (error: any) {
             console.error('Error updating profile:', error);
             toast.error(error.message || 'Failed to update profile');
@@ -138,12 +157,24 @@ export default function ProfilePage() {
                 <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden relative">
                     {/* Growthory Style Cover */}
                     <div className="h-56 w-full bg-slate-900 relative overflow-hidden group">
-                        <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#3d522b] via-slate-900 to-slate-900"></div>
-                        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+                        {bannerPreview ? (
+                            <img src={bannerPreview} className="w-full h-full object-cover" />
+                        ) : (
+                            <>
+                                <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#3d522b] via-slate-900 to-slate-900"></div>
+                                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+                            </>
+                        )}
                         {editing && (
-                            <div className="absolute top-4 right-4 bg-white/10 backdrop-blur p-3 rounded-full cursor-pointer hover:bg-white/20 transition-all border border-white/20">
+                            <label className="absolute top-4 right-4 bg-white/10 backdrop-blur p-3 rounded-full cursor-pointer hover:bg-white/20 transition-all border border-white/20">
                                 <Camera className="h-5 w-5 text-white" />
-                            </div>
+                                <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                        setBannerFile(e.target.files[0]);
+                                        setBannerPreview(URL.createObjectURL(e.target.files[0]));
+                                    }
+                                }} />
+                            </label>
                         )}
                     </div>
 
@@ -151,13 +182,23 @@ export default function ProfilePage() {
                         {/* Avatar Overlap */}
                         <div className="flex justify-between items-start -mt-24 mb-6 relative z-10">
                             <div className="relative group">
-                                <div className="h-40 w-40 rounded-full border-[6px] border-white bg-slate-50 flex items-center justify-center text-6xl font-black text-[#3d522b] overflow-hidden shadow-lg">
-                                    {profileData.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                                <div className="h-40 w-40 rounded-full border-[6px] border-white bg-slate-50 flex items-center justify-center text-6xl font-black text-[#3d522b] overflow-hidden shadow-lg relative">
+                                    {avatarPreview ? (
+                                        <img src={avatarPreview} className="w-full h-full object-cover" />
+                                    ) : (
+                                        profileData.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'
+                                    )}
                                 </div>
                                 {editing && (
-                                    <div className="absolute inset-0 border-[6px] border-transparent flex items-center justify-center bg-black/50 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <label className="absolute inset-0 border-[6px] border-transparent flex items-center justify-center bg-black/50 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Camera className="h-8 w-8 text-white" />
-                                    </div>
+                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                            if (e.target.files && e.target.files[0]) {
+                                                setAvatarFile(e.target.files[0]);
+                                                setAvatarPreview(URL.createObjectURL(e.target.files[0]));
+                                            }
+                                        }} />
+                                    </label>
                                 )}
                             </div>
                         </div>
