@@ -261,7 +261,7 @@ export default function Dashboard() {
                                             
                                             {activeMenu === s._id && (
                                                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 z-[60] overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
-                                                    {(s.founder_id === user?.id || s.founder_id === user?._id) && (
+                                                    {(user && (String(s.founder_id) === String(user.id) || String(s.founder_id) === String(user._id) || String(s.founder?._id) === String(user.id) || String(s.founder?._id) === String(user._id))) && (
                                                         <button 
                                                             onClick={() => router.push(`/startups/${s._id}/edit`)}
                                                             className="w-full flex items-center gap-3 px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-[#3d522b] transition-all"
