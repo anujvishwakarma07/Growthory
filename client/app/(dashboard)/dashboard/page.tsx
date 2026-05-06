@@ -26,7 +26,8 @@ import {
     Building2,
     TrendingUp,
     Rocket,
-    Target
+    Target,
+    Activity
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -34,6 +35,7 @@ export default function Dashboard() {
     const toast = useToast();
     const [user, setUser] = useState<any>(null);
     const [startups, setStartups] = useState<any[]>([]);
+    const [stats, setStats] = useState<any>(null);
     const [myProfile, setMyProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [likesModal, setLikesModal] = useState<string | null>(null);
@@ -52,6 +54,15 @@ export default function Dashboard() {
             const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000/api` : 'http://localhost:5000/api');
 
             try {
+                // Fetch Stats
+                const statsRes = await fetch(`${API_URL}/system/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (statsRes.ok) {
+                    const statsData = await statsRes.json();
+                    setStats(statsData);
+                }
+
                 // Fetch All Startups for the Feed
                 const res = await fetch(`${API_URL}/startups`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -60,11 +71,9 @@ export default function Dashboard() {
                 if (!res.ok) throw new Error("Failed to fetch startups");
                 const allStartups = await res.json();
 
-                // Ensure allStartups is an array for feed and for finding profile
                 const startupsArray = Array.isArray(allStartups) ? allStartups : [];
                 setStartups(startupsArray);
 
-                // Find user's specific profile
                 const role = currentUser.role || 'founder';
                 if (role === 'founder') {
                     const myCol = startupsArray.find((s: any) => s.founder_id === currentUser.id);
@@ -119,7 +128,7 @@ export default function Dashboard() {
                             <p className="text-xs text-slate-500 font-medium mt-1 uppercase tracking-wider">{role} @ Growthory</p>
 
                             <div className="mt-6 pt-6 border-t border-slate-100 space-y-3">
-                                <div className="flex justify-between items-center text-xs font-bold">
+                                <div className="flex justify-between items-center text-xs font-bold cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors" onClick={() => router.push('/network')}>
                                     <span className="text-slate-500">Node Connections</span>
                                     <span className="text-[#3d522b]">1,240</span>
                                 </div>
@@ -151,6 +160,33 @@ export default function Dashboard() {
 
                 {/* Center Content: The Startup Feed */}
                 <div className="lg:col-span-6 space-y-6">
+                    {/* Live Ecosystem Pulse Bar */}
+                    {stats && (
+                        <div className="bg-slate-900 rounded-xl shadow-xl overflow-hidden relative group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#3d522b]/20 to-transparent pointer-events-none"></div>
+                            <div className="flex items-center justify-between px-6 py-4 relative z-10">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_#10b981]"></div>
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Live Ecosystem Signal</span>
+                                </div>
+                                <div className="flex items-center gap-8">
+                                    <div className="text-center">
+                                        <div className="text-xs font-black text-white">{stats.totalStartups}</div>
+                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Ventures</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xs font-black text-white">{stats.signalsToday}</div>
+                                        <div className="text-[8px] font-bold text-slate-400 uppercase">24h Signal</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xs font-black text-white">{stats.totalInvestors}</div>
+                                        <div className="text-[8px] font-bold text-slate-400 uppercase">Capital</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Create Action Box */}
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                         <div className="flex gap-4 mb-4">
@@ -165,24 +201,15 @@ export default function Dashboard() {
                             </button>
                         </div>
                         <div className="flex justify-around pt-2">
-                            <button
-                                onClick={() => router.push(role === 'founder' ? '/startups/create' : '/network')}
-                                className="flex items-center justify-center gap-2 p-2 px-4 rounded-lg hover:bg-slate-50 transition-colors"
-                            >
+                            <button onClick={() => router.push(role === 'founder' ? '/startups/create' : '/network')} className="flex items-center justify-center gap-2 p-2 px-4 rounded-lg hover:bg-slate-50 transition-colors">
                                 <Rocket className="h-4 w-4 text-[#3d522b]" />
                                 <span className="text-sm font-bold text-slate-600">Startup</span>
                             </button>
-                            <button
-                                onClick={() => router.push('/analytics')}
-                                className="flex items-center justify-center gap-2 p-2 px-4 rounded-lg hover:bg-slate-50 transition-colors"
-                            >
+                            <button onClick={() => router.push('/analytics')} className="flex items-center justify-center gap-2 p-2 px-4 rounded-lg hover:bg-slate-50 transition-colors">
                                 <Sparkles className="h-4 w-4 text-amber-500" />
                                 <span className="text-sm font-bold text-slate-600">Analysis</span>
                             </button>
-                            <button
-                                onClick={() => router.push(role === 'investor' ? '/investor/matches' : '/network')}
-                                className="flex items-center justify-center gap-2 p-2 px-4 rounded-lg hover:bg-slate-50 transition-colors"
-                            >
+                            <button onClick={() => router.push(role === 'investor' ? '/investor/matches' : '/network')} className="flex items-center justify-center gap-2 p-2 px-4 rounded-lg hover:bg-slate-50 transition-colors">
                                 <Target className="h-4 w-4 text-[#3d522b]" />
                                 <span className="text-sm font-bold text-slate-600">Match</span>
                             </button>
@@ -200,7 +227,7 @@ export default function Dashboard() {
                     {/* Startup Cards (Feed) */}
                     <div className="space-y-4">
                         {startups.length > 0 ? startups.map((s) => (
-                            <div key={s._id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transform transition-all hover:border-slate-300">
+                            <div key={s._id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden transform transition-all hover:border-slate-300 group">
                                 <div className="p-5">
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex gap-4">
@@ -208,40 +235,35 @@ export default function Dashboard() {
                                                 {s.logo_url ? <img src={s.logo_url} alt={s.name} className="h-full w-full object-contain rounded-lg" /> : <Building2 className="h-6 w-6" />}
                                             </div>
                                             <div>
-                                                <h3 className="text-base font-bold text-slate-900 group-hover:text-[#3d522b]">{s.name}</h3>
+                                                <h3 className="text-base font-bold text-slate-900 group-hover:text-[#3d522b] transition-colors">{s.name}</h3>
                                                 <div className="flex items-center gap-2">
                                                     <Link href={`/profile/${s.founder_id}`} className="text-[10px] font-black uppercase tracking-widest text-[#3d522b] hover:underline">
-                                                        {s.founder?.full_name || 'Anonymous founder'}
+                                                        {s.founder?.full_name || 'Ecosystem Founder'}
                                                     </Link>
                                                     <span className="h-1 w-1 bg-slate-300 rounded-full"></span>
                                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{s.tagline || 'Stealth Venture'}</p>
                                                 </div>
                                             </div>
                                         </div>
-                                        <button className="text-slate-400 hover:text-slate-600">
-                                            <MoreHorizontal className="h-5 w-5" />
-                                        </button>
+                                        <button className="text-slate-400 hover:text-slate-600"><MoreHorizontal className="h-5 w-5" /></button>
                                     </div>
 
-                                    <p className="text-sm text-slate-600 leading-relaxed mb-6 line-clamp-3">
-                                        {s.description_raw}
+                                    <p className="text-sm text-slate-600 leading-relaxed mb-6 line-clamp-3 italic">
+                                        "{s.description_raw}"
                                     </p>
 
-                                    {/* Image Gallery - LinkedIn Style */}
+                                    {/* Image Gallery */}
                                     {((s.image_urls && s.image_urls.length > 0) || s.image_url) && (
-                                        <div className="mb-6 px-2">
-                                            <div className={`grid gap-2 ${
+                                        <div className="mb-6 rounded-xl overflow-hidden border border-slate-100 shadow-sm">
+                                            <div className={`grid gap-1 ${
                                                 (s.image_urls?.length || (s.image_url ? 1 : 0)) > 1 ? 'grid-cols-2' : 'grid-cols-1'
                                             }`}>
-                                                {(s.image_urls && s.image_urls.length > 0 ? s.image_urls : [s.image_url]).map((img: string, idx: number) => (
-                                                    <div key={idx} className="relative rounded-xl overflow-hidden border border-slate-100 shadow-sm bg-slate-50 aspect-video md:aspect-auto">
+                                                {(s.image_urls && s.image_urls.length > 0 ? s.image_urls : [s.image_url]).slice(0, 4).map((img: string, idx: number) => (
+                                                    <div key={idx} className="relative aspect-video bg-slate-50">
                                                         <img 
                                                             src={img} 
-                                                            alt={`${s.name} visualization ${idx + 1}`} 
-                                                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-                                                            onError={(e) => {
-                                                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1551434678-e076c223a692?q=80&w=2070&auto=format&fit=crop'; // Technical fallback
-                                                            }}
+                                                            alt={`${s.name} asset`} 
+                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                                         />
                                                     </div>
                                                 ))}
@@ -252,11 +274,6 @@ export default function Dashboard() {
                                     <div className="flex flex-wrap gap-2 mb-6">
                                         <span className="px-3 py-1 bg-[#3d522b]/10 text-[#3d522b] rounded-full text-[10px] font-black uppercase tracking-widest">{s.industry}</span>
                                         <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[10px] font-black uppercase tracking-widest">{s.stage}</span>
-                                        {s.startup_analysis?.[0] && (
-                                            <span className="px-3 py-1 bg-amber-50 text-amber-600 border border-amber-100 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
-                                                <TrendingUp className="h-3 w-3" /> Analysis: {s.startup_analysis[0].investor_appeal_score}
-                                            </span>
-                                        )}
                                     </div>
 
                                     <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
@@ -278,51 +295,15 @@ export default function Dashboard() {
                                                     className={`flex items-center gap-2 transition-colors ${s.liked ? 'text-[#3d522b]' : 'text-slate-500 hover:text-[#3d522b]'}`}
                                                 >
                                                     <TrendingUp className={`h-4 w-4 ${s.liked ? 'fill-current' : ''}`} />
-                                                </button>
-                                                <button
-                                                    onClick={async () => {
-                                                        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api'}/startups/${s._id}/likes`, {
-                                                            headers: { 'Authorization': `Bearer ${auth.getToken()}` }
-                                                        });
-                                                        const data = await res.json();
-                                                        setLikesData(data);
-                                                        setLikesModal(s.name);
-                                                    }}
-                                                    className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-[#3d522b]"
-                                                >
-                                                    {s.like_count} Signals
+                                                    <span className="text-xs font-bold uppercase tracking-widest">{s.like_count} Signals</span>
                                                 </button>
                                             </div>
-                                            <button
-                                                onClick={() => toast.info("Insights section deploying in V2.1")}
-                                                className="flex items-center gap-2 text-slate-500 hover:text-[#3d522b] transition-colors"
-                                            >
+                                            <button onClick={() => toast.info("Insights section deploying in V2.1")} className="flex items-center gap-2 text-slate-500 hover:text-[#3d522b] transition-colors">
                                                 <MessageCircle className="h-4 w-4" />
-                                                <span className="text-xs font-bold uppercase tracking-widest">{s.comment_count} Insights</span>
-                                            </button>
-                                            <button
-                                                onClick={async () => {
-                                                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api'}/network/connect`, {
-                                                        method: 'POST',
-                                                        headers: { 
-                                                            'Content-Type': 'application/json',
-                                                            'Authorization': `Bearer ${auth.getToken()}`
-                                                        },
-                                                        body: JSON.stringify({ source_id: user.id, target_id: s.founder_id })
-                                                    });
-                                                    const data = await res.json();
-                                                    if (data.success) toast.success("Signal connection request transmitted.");
-                                                    else toast.error(data.error);
-                                                }}
-                                                className="flex items-center gap-2 text-slate-500 hover:text-[#3d522b] transition-colors"
-                                            >
-                                                <ArrowUpRight className="h-5 w-5" />
-                                                <span className="text-xs font-bold uppercase tracking-widest">Connect</span>
+                                                <span className="text-xs font-bold uppercase tracking-widest">{s.comment_count || 0} Insights</span>
                                             </button>
                                         </div>
-                                        <button className="text-slate-400 hover:text-amber-500">
-                                            <Bookmark className="h-5 w-5" />
-                                        </button>
+                                        <button className="text-slate-400 hover:text-amber-500"><Bookmark className="h-5 w-5" /></button>
                                     </div>
                                 </div>
                             </div>
@@ -331,62 +312,24 @@ export default function Dashboard() {
                                 <Globe className="h-12 w-12 text-slate-200 mx-auto mb-4" />
                                 <h3 className="text-lg font-bold text-slate-900 mb-2">No Ventures Found</h3>
                                 <p className="text-slate-500 mb-6">Be the first to register a startup in your network.</p>
-                                <Button onClick={() => router.push('/startups/create')} variant="primary" className="rounded-full px-8 bg-[#3d522b]">
-                                    Register Venture
-                                </Button>
+                                <Button onClick={() => router.push('/startups/create')} variant="primary" className="rounded-full px-8 bg-[#3d522b]">Register Venture</Button>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Likes Modal */}
-                {likesModal && (
-                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                        <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-                            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-[#3d522b]">Protocol Signals: {likesModal}</h3>
-                                <button onClick={() => setLikesModal(null)} className="h-8 w-8 rounded-full hover:bg-slate-50 flex items-center justify-center transition-colors">
-                                    <Plus className="h-5 w-5 rotate-45 text-slate-400" />
-                                </button>
-                            </div>
-                            <div className="max-h-[400px] overflow-y-auto p-2">
-                                {likesData.map((node: any) => (
-                                    <div
-                                        key={node.id}
-                                        className="flex items-center gap-4 p-4 hover:bg-slate-50 rounded-2xl cursor-pointer transition-colors group"
-                                        onClick={() => router.push(`/profile/${node.id}`)}
-                                    >
-                                        <div className="h-12 w-12 rounded-xl bg-[#3d522b]/5 border border-[#3d522b]/10 flex items-center justify-center text-lg font-black text-[#3d522b] group-hover:bg-[#3d522b] group-hover:text-white transition-all">
-                                            {node.full_name?.[0]?.toUpperCase()}
-                                        </div>
-                                        <div className="flex-grow">
-                                            <div className="text-sm font-black uppercase tracking-tight text-slate-900">{node.full_name}</div>
-                                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{node.role} @ Ecosystem</div>
-                                        </div>
-                                        <ArrowUpRight className="h-4 w-4 text-slate-300 group-hover:text-[#3d522b] transition-colors" />
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="p-6 bg-slate-50 text-center">
-                                <button onClick={() => setLikesModal(null)} className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3d522b]">Close Transmission</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
                 {/* Right Sidebar: Trends & Suggested */}
                 <div className="lg:col-span-3 space-y-6">
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                         <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-sm font-black uppercase tracking-widest text-[#3d522b]">Ecosystem Pulse</h3>
-                            <Settings className="h-4 w-4 text-slate-400" />
+                            <h3 className="text-sm font-black uppercase tracking-widest text-[#3d522b]">Sector Signals</h3>
+                            <Activity className="h-4 w-4 text-slate-400" />
                         </div>
-
                         <div className="space-y-6">
                             {[
-                                { title: 'AI-SaaS Boom', stats: '42 Active Rounds', trend: '+12%' },
-                                { title: 'Fintech Liquidity', stats: '$2.4M Volume', trend: '+5%' },
-                                { title: 'Green Energy Hub', stats: '12 New Nodes', trend: '+24%' },
+                                { title: 'Photonic AI', stats: '3 Active Rounds', trend: '+12%' },
+                                { title: 'Cellular Ag', stats: 'Seed Phase', trend: '+5%' },
+                                { title: 'Space Logistics', stats: 'Series A', trend: '+24%' },
                             ].map((trend, i) => (
                                 <div key={i} className="group cursor-pointer">
                                     <div className="flex items-center justify-between mb-1">
@@ -400,23 +343,6 @@ export default function Dashboard() {
                                 </div>
                             ))}
                         </div>
-
-                        <button className="w-full mt-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-center text-[#3d522b] hover:bg-[#3d522b]/5 rounded-lg transition-all">
-                            View Full Report
-                        </button>
-                    </div>
-
-                    <div className="sticky top-24 p-2">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex flex-wrap justify-center gap-x-4 gap-y-2">
-                            <a href="#" className="hover:text-[#3d522b]">About</a>
-                            <a href="#" className="hover:text-[#3d522b]">Accessibility</a>
-                            <a href="#" className="hover:text-[#3d522b]">Help Center</a>
-                            <a href="#" className="hover:text-[#3d522b]">Privacy & Terms</a>
-                            <a href="#" className="hover:text-[#3d522b]">Sales Solutions</a>
-                        </div>
-                        <div className="mt-4 text-center">
-                            <span className="text-[10px] font-black text-[#3d522b] uppercase tracking-[0.3em]">Growthory © 2026</span>
-                        </div>
                     </div>
                 </div>
 
@@ -424,4 +350,3 @@ export default function Dashboard() {
         </div>
     );
 }
-

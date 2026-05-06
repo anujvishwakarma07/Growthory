@@ -39,6 +39,18 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    linkedin_url: {
+        type: String,
+        default: ''
+    },
+    skills: {
+        type: [String],
+        default: []
+    },
+    experience_years: {
+        type: Number,
+        default: 0
+    },
     ai_prefs: {
         aura: { type: String, default: 'tactical' },
         verbosity: { type: String, default: 'high' },

@@ -102,7 +102,7 @@ export const getStartupLikes = async (req, res) => {
 // Update user profile
 export const updateUserProfile = async (req, res) => {
     const userId = req.user.id;
-    const { full_name, bio, location, company, ai_prefs, eco_settings } = req.body;
+    const { full_name, bio, location, company, ai_prefs, eco_settings, linkedin_url, skills, experience_years } = req.body;
 
     try {
         const user = await User.findById(userId);
@@ -112,6 +112,10 @@ export const updateUserProfile = async (req, res) => {
         if (bio !== undefined) user.bio = bio;
         if (location !== undefined) user.location = location;
         if (company !== undefined) user.company = company;
+        if (linkedin_url !== undefined) user.linkedin_url = linkedin_url;
+        if (skills !== undefined) user.skills = skills;
+        if (experience_years !== undefined) user.experience_years = experience_years;
+        
         if (ai_prefs) user.ai_prefs = { ...user.ai_prefs, ...ai_prefs };
         if (eco_settings) user.eco_settings = { ...user.eco_settings, ...eco_settings };
 
@@ -128,6 +132,9 @@ export const updateUserProfile = async (req, res) => {
                 bio: user.bio,
                 location: user.location,
                 company: user.company,
+                linkedin_url: user.linkedin_url,
+                skills: user.skills,
+                experience_years: user.experience_years,
                 ai_prefs: user.ai_prefs,
                 eco_settings: user.eco_settings
             }
