@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { auth } from '@/lib/auth';
+import { auth, API_URL } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { User, Mail, Briefcase, MapPin, Calendar, Edit, Save, ArrowLeft, Shield, TrendingUp, Award, Target, Sparkles, Rocket, Building2, Linkedin, ExternalLink, Plus, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
