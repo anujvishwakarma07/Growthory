@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
     },
     role : {
         type : String,
-        enum : ['founder', 'investor', 'professional'],
+        enum : ['founder', 'investor', 'professional', 'admin'],
         default : 'founder'
     },
     avatar_url : {

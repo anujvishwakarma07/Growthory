@@ -46,7 +46,15 @@ export default function NetworkPage() {
             const res = await fetch(url, { headers });
             if (!res.ok) throw new Error("Failed to fetch nodes");
             const data = await res.json();
-            setPeople(Array.isArray(data) ? data : []);
+            
+            // Map backend flags to frontend status string
+            const formattedData = Array.isArray(data) ? data.map((p: any) => ({
+                ...p,
+                _id: p.id, // Backend returns 'id', frontend uses '_id'
+                status: p.connected ? 'accepted' : p.pending ? 'pending' : 'none'
+            })) : [];
+            
+            setPeople(formattedData);
         } catch (err: any) {
             console.error("Fetch network error:", err);
             toast.error(err.message || "Failed to sync with ecosystem nodes");
@@ -58,7 +66,7 @@ export default function NetworkPage() {
     const fetchConnections = async (userId: string) => {
         try {
             const token = auth.getToken();
-            const res = await fetch(`${API_URL}/network/connections?userId=${userId}`, {
+            const res = await fetch(`${API_URL}/network/my-network/${userId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
@@ -71,11 +79,19 @@ export default function NetworkPage() {
     const fetchPending = async (userId: string) => {
         try {
             const token = auth.getToken();
-            const res = await fetch(`${API_URL}/network/pending?userId=${userId}`, {
+            const res = await fetch(`${API_URL}/network/pending-requests/${userId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
-            setPendingRequests(Array.isArray(data) ? data : []);
+            // Store both in the state
+            setPendingRequests(data.received || []);
+            // You might want a separate state for sent, or just combine them
+            // Let's combine them for the list but with distinct styling
+            const combined = [
+                ...(data.received || []).map((r: any) => ({ ...r, type: 'incoming' })),
+                ...(data.sent || []).map((s: any) => ({ ...s, type: 'outgoing' }))
+            ];
+            setPendingRequests(combined);
         } catch (err) {
             console.error(err);
         }
@@ -103,8 +119,8 @@ export default function NetworkPage() {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    requesterId: user.id,
-                    recipientId: targetId
+                    source_id: user.id,
+                    target_id: targetId
                 })
             });
             const data = await res.json();
@@ -112,6 +128,7 @@ export default function NetworkPage() {
             
             toast.success("Connection request initiated");
             setPeople(prev => prev.map(p => p._id === targetId ? { ...p, status: 'pending' } : p));
+            fetchPending(user.id); // Refresh pending list
         } catch (err: any) {
             toast.error(err.message);
         }
@@ -120,21 +137,20 @@ export default function NetworkPage() {
     const handleAccept = async (requestId: string) => {
         try {
             const token = auth.getToken();
-            const res = await fetch(`${API_URL}/network/respond`, {
+            const res = await fetch(`${API_URL}/network/respond/${requestId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    requestId,
-                    status: 'accepted'
+                    action: 'accept'
                 })
             });
             if (!res.ok) throw new Error("Failed to accept");
             
             toast.success("Connection secured");
-            setPendingRequests(prev => prev.filter(r => r._id !== requestId));
+            setPendingRequests(prev => prev.filter(r => r.id !== requestId));
             fetchConnections(user.id);
         } catch (err: any) {
             toast.error(err.message);
@@ -175,9 +191,9 @@ export default function NetworkPage() {
                                     tab === t ? 'bg-[#3d522b] text-white shadow-lg shadow-[#3d522b]/20' : 'text-slate-400 hover:text-slate-600'
                                 }`}
                             >
-                                {t} {t === 'pending' && pendingRequests.length > 0 && (
+                                {t} {t === 'pending' && pendingRequests.filter(r => r.type === 'incoming').length > 0 && (
                                     <span className="ml-2 bg-red-500 text-white rounded-full h-4 w-4 inline-flex items-center justify-center text-[8px]">
-                                        {pendingRequests.length}
+                                        {pendingRequests.filter(r => r.type === 'incoming').length}
                                     </span>
                                 )}
                             </button>
@@ -280,7 +296,8 @@ export default function NetworkPage() {
                 {tab === 'connections' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {connections.length > 0 ? connections.map((c) => {
-                            const person = c.requester._id === user.id ? c.recipient : c.requester;
+                            const person = c.requester?._id === user?.id ? c.recipient : c.requester;
+                            if (!person) return null;
                             return (
                                 <div key={c._id} className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm flex items-center gap-4">
                                     <div className="h-12 w-12 rounded-xl bg-[#3d522b]/5 flex items-center justify-center font-black text-[#3d522b]">
@@ -304,35 +321,72 @@ export default function NetworkPage() {
                 )}
 
                 {tab === 'pending' && (
-                    <div className="max-w-2xl mx-auto space-y-4">
-                        {pendingRequests.length > 0 ? pendingRequests.map((r) => (
-                            <div key={r._id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-400">
-                                        {r.requester.full_name?.[0]}
+                    <div className="max-w-2xl mx-auto space-y-8">
+                        {/* Incoming Section */}
+                        <div className="space-y-4">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[#3d522b] flex items-center gap-2">
+                                <Zap className="h-3 w-3" /> Incoming Signals
+                            </h3>
+                            {pendingRequests.filter(r => r.type === 'incoming').length > 0 ? (
+                                pendingRequests.filter(r => r.type === 'incoming').map((r) => (
+                                    <div key={r.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-400 overflow-hidden">
+                                                {r.from.avatar_url ? <img src={r.from.avatar_url} className="h-full w-full object-cover" /> : r.from.full_name?.[0]}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-sm text-slate-900">{r.from.full_name}</h3>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-[#3d522b]">{r.from.role}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => handleAccept(r.id)}
+                                                className="p-2 bg-[#3d522b] text-white rounded-lg hover:opacity-90"
+                                            >
+                                                <Check className="h-4 w-4" />
+                                            </button>
+                                            <button className="p-2 bg-slate-100 text-slate-400 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors">
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="font-bold text-sm text-slate-900">{r.requester.full_name}</h3>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#3d522b]">{r.requester.role}</p>
+                                ))
+                            ) : (
+                                <div className="p-8 text-center bg-white/50 rounded-2xl border border-dashed border-slate-200">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No incoming node signals</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Outgoing Section */}
+                        <div className="space-y-4">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                                <ArrowUpRight className="h-3 w-3" /> Sent Signals
+                            </h3>
+                            {pendingRequests.filter(r => r.type === 'outgoing').length > 0 ? (
+                                pendingRequests.filter(r => r.type === 'outgoing').map((r) => (
+                                    <div key={r.id} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center justify-between opacity-80">
+                                        <div className="flex items-center gap-4">
+                                            <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center font-bold text-slate-300 overflow-hidden">
+                                                {r.to.avatar_url ? <img src={r.to.avatar_url} className="h-full w-full object-cover" /> : r.to.full_name?.[0]}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-sm text-slate-700">{r.to.full_name}</h3>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{r.to.role}</p>
+                                            </div>
+                                        </div>
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 bg-amber-50 px-3 py-1.5 rounded-full">
+                                            Pending
+                                        </span>
                                     </div>
+                                ))
+                            ) : (
+                                <div className="p-8 text-center bg-white/50 rounded-2xl border border-dashed border-slate-200">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No outgoing node signals</p>
                                 </div>
-                                <div className="flex gap-2">
-                                    <button 
-                                        onClick={() => handleAccept(r._id)}
-                                        className="p-2 bg-[#3d522b] text-white rounded-lg hover:opacity-90"
-                                    >
-                                        <Check className="h-4 w-4" />
-                                    </button>
-                                    <button className="p-2 bg-slate-100 text-slate-400 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors">
-                                        <X className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        )) : (
-                            <div className="py-20 text-center">
-                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No pending requests</p>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 )}
 

@@ -15,7 +15,13 @@ router.get('/me', protect, (req, res) => {
         email: req.user.email,
         full_name: req.user.full_name,
         role: req.user.role,
-        avatar_url: req.user.avatar_url
+        avatar_url: req.user.avatar_url,
+        banner_url: req.user.banner_url,
+        bio: req.user.bio,
+        location: req.user.location,
+        company: req.user.company,
+        skills: req.user.skills,
+        experience_years: req.user.experience_years
     });
 });
 

@@ -135,7 +135,7 @@ export const updateStartup = async (req, res) => {
         if (!startup) return res.status(404).json({ error: "Startup not found" });
 
         // Authorization check
-        if (startup.founder_id.toString() !== req.user.id) {
+        if (startup.founder_id.toString() !== req.user.id && req.user.role !== 'admin') {
             return res.status(403).json({ error: "Unauthorized to edit this startup" });
         }
 
@@ -201,7 +201,7 @@ export const deleteStartup = async (req, res) => {
         const startup = await Startup.findById(id);
         if (!startup) return res.status(404).json({ error: "Startup not found" });
 
-        if (startup.founder_id.toString() !== req.user.id) {
+        if (startup.founder_id.toString() !== req.user.id && req.user.role !== 'admin') {
             return res.status(403).json({ error: "Unauthorized" });
         }
 

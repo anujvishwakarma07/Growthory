@@ -15,6 +15,7 @@ interface StartupAnalysis {
 interface Startup {
     id: string;
     _id?: string;
+    founder_id?: string;
     name: string;
     industry: string;
     stage: string;
@@ -39,7 +40,8 @@ export default function InvestorMatches() {
 
                 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
                 const token = auth.getToken();
-                const res = await fetch(`${API_URL}/investors/${currentUser.id}/matches`, {
+                const userId = currentUser.id || currentUser._id;
+                const res = await fetch(`${API_URL}/investors/${userId}/matches`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -122,9 +124,46 @@ export default function InvestorMatches() {
                                         <MapPin className="h-4 w-4" />
                                         <span className="text-[10px] font-bold uppercase tracking-widest">SF / Remote</span>
                                     </div>
-                                    <button className="h-10 w-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-[#3d522b] group-hover:text-white transition-all shadow-sm">
-                                        <ArrowUpRight className="h-5 w-5" />
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <Button 
+                                            onClick={async () => {
+                                                const currentUser = auth.getUser();
+                                                if (!currentUser) return toast.error("Please login first");
+                                                if (!startup.founder_id) return toast.error("No founder found for this venture");
+                                                try {
+                                                    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/api';
+                                                    const userId = currentUser.id || currentUser._id;
+                                                    const res = await fetch(`${API_URL}/network/connect`, {
+                                                        method: 'POST',
+                                                        headers: {
+                                                            'Content-Type': 'application/json',
+                                                            'Authorization': `Bearer ${auth.getToken()}`
+                                                        },
+                                                        body: JSON.stringify({
+                                                            source_id: userId,
+                                                            target_id: startup.founder_id,
+                                                            match_type: 'investor_startup'
+                                                        })
+                                                    });
+                                                    const data = await res.json();
+                                                    if (!res.ok) throw new Error(data.error || "Failed to send signal");
+                                                    toast.success(`Investment signal sent to ${startup.name}!`);
+                                                } catch (err: any) {
+                                                    toast.error(err.message);
+                                                }
+                                            }} 
+                                            className="bg-[#3d522b] hover:bg-[#606c38] text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-colors"
+                                        >
+                                            Invest
+                                        </Button>
+                                        {startup.founder_id && (
+                                            <Link href={`/profile/${startup.founder_id}`}>
+                                                <button className="h-10 w-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-slate-200 transition-all shadow-sm">
+                                                    <ArrowUpRight className="h-5 w-5 text-[#3d522b]" />
+                                                </button>
+                                            </Link>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}

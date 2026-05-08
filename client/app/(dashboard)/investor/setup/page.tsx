@@ -39,7 +39,8 @@ export default function InvestorSetup() {
         const token = auth.getToken();
 
         try {
-            const response = await fetch(`${API_URL}/investors/${currentUser.id}/preferences`, {
+            const userId = currentUser.id || currentUser._id;
+            const response = await fetch(`${API_URL}/investors/${userId}/preferences`, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',

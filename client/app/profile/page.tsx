@@ -41,49 +41,31 @@ export default function ProfilePage() {
                 router.push('/login');
                 return;
             }
+            let userToUse = currentUser;
+            try {
+                const freshUser = await auth.getMe();
+                if (freshUser) {
+                    userToUse = freshUser;
+                    localStorage.setItem('growthory_user', JSON.stringify(freshUser));
+                }
+            } catch (e) {}
 
-            // Fetch fresh data from API to sync with database
-            const token = auth.getToken();
-            const userRes = await fetch(`${API_URL}/users/${currentUser.id || currentUser._id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            setUser(userToUse);
+            setProfileData({
+                full_name: userToUse.full_name || '',
+                bio: userToUse.bio || '',
+                role: userToUse.role || 'founder',
+                location: userToUse.location || '',
+                company: userToUse.company || '',
+                linkedin_url: userToUse.linkedin_url || '',
+                skills: userToUse.skills || [],
+                experience_years: userToUse.experience_years || 0
             });
-            const freshUser = await userRes.json();
-            
-            if (freshUser && !freshUser.error) {
-                // Update local storage and state with fresh data
-                const updatedUser = { ...currentUser, ...freshUser };
-                localStorage.setItem('growthory_user', JSON.stringify(updatedUser));
-                setUser(updatedUser);
-                setProfileData({
-                    full_name: freshUser.full_name || '',
-                    bio: freshUser.bio || '',
-                    role: freshUser.role || 'founder',
-                    location: freshUser.location || '',
-                    company: freshUser.company || '',
-                    linkedin_url: freshUser.linkedin_url || '',
-                    skills: freshUser.skills || [],
-                    experience_years: freshUser.experience_years || 0
-                });
-                setAvatarPreview(freshUser.avatar_url || null);
-                setBannerPreview(freshUser.banner_url || null);
-            } else {
-                // Fallback to local storage if API fails
-                setUser(currentUser);
-                setProfileData({
-                    full_name: currentUser.full_name || '',
-                    bio: currentUser.bio || '',
-                    role: currentUser.role || 'founder',
-                    location: currentUser.location || '',
-                    company: currentUser.company || '',
-                    linkedin_url: currentUser.linkedin_url || '',
-                    skills: currentUser.skills || [],
-                    experience_years: currentUser.experience_years || 0
-                });
-                setAvatarPreview(currentUser.avatar_url || null);
-                setBannerPreview(currentUser.banner_url || null);
-            }
+            setAvatarPreview(userToUse.avatar_url || null);
+            setBannerPreview(userToUse.banner_url || null);
 
             if (currentUser.role === 'founder') {
+                const token = auth.getToken();
                 const res = await fetch(`${API_URL}/startups`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

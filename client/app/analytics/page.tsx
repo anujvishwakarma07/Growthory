@@ -6,11 +6,12 @@ import { BarChart3, TrendingUp, Zap, PieChart, Activity, Globe, ArrowUpRight, Ar
 export default function AnalyticsPage() {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [timeframe, setTimeframe] = useState('1M');
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const res = await fetch(`${API_URL}/system/stats`);
+                const res = await fetch(`${API_URL}/system/stats?timeframe=${timeframe}`);
                 const data = await res.json();
                 setStats(data);
             } catch (err) {
@@ -20,7 +21,7 @@ export default function AnalyticsPage() {
             }
         };
         fetchStats();
-    }, []);
+    }, [timeframe]);
 
     const statDisplay = [
         { label: 'Total Ventures', value: stats?.totalStartups || '842', trend: '+12.5%', up: true, icon: Rocket },
@@ -68,27 +69,44 @@ export default function AnalyticsPage() {
                         <div className="flex justify-between items-center mb-16 relative z-10">
                             <h3 className="text-xl font-black uppercase tracking-tight text-slate-900">Global Venture Flow</h3>
                             <div className="flex bg-slate-50 p-1 rounded-full border border-slate-200">
-                                <button className="px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-400">1W</button>
-                                <button className="px-5 py-1.5 rounded-full bg-[#3d522b] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#3d522b]/20">1M</button>
-                                <button className="px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-400">1Y</button>
+                                {['1W', '1M', '1Y'].map((t) => (
+                                    <button 
+                                        key={t}
+                                        onClick={() => setTimeframe(t)}
+                                        className={`px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                                            timeframe === t 
+                                            ? 'bg-[#3d522b] text-white shadow-lg shadow-[#3d522b]/20' 
+                                            : 'text-slate-400 hover:text-slate-600'
+                                        }`}
+                                    >
+                                        {t}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
-                        <div className="h-[350px] flex items-end gap-3 px-4 relative z-10">
-                            {[40, 60, 45, 70, 55, 90, 65, 80, 50, 85, 95, 75].map((h, i) => (
-                                <div key={i} className="flex-grow group/bar relative">
+                        <div className="h-[350px] flex items-end gap-2 px-4 relative z-10">
+                            {(Array.isArray(stats?.monthlyTrend) && stats.monthlyTrend.length === 12 
+                                ? stats.monthlyTrend 
+                                : [40, 60, 45, 70, 55, 90, 65, 80, 50, 85, 95, 75]
+                            ).map((h: number, i: number) => (
+                                <div key={i} className="flex-grow group/bar relative h-full flex items-end">
                                     <div
-                                        className="w-full rounded-t-xl transition-all duration-700 ease-out bg-slate-100 group-hover/bar:bg-[#3d522b] shadow-sm"
-                                        style={{ height: `${h}%` }}
+                                        className="w-full rounded-t-xl transition-all duration-700 ease-out bg-[#3d522b]/10 group-hover/bar:bg-[#3d522b] shadow-sm min-w-[12px]"
+                                        style={{ height: `${Math.max(8, h)}%` }}
                                     ></div>
-                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-black opacity-0 group-hover/bar:opacity-100 transition-all transform translate-y-2 group-hover/bar:translate-y-0 shadow-xl">
-                                        {h}%
+                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-3 py-1.5 rounded-lg text-[10px] font-black opacity-0 group-hover/bar:opacity-100 transition-all transform translate-y-2 group-hover/bar:translate-y-0 shadow-xl whitespace-nowrap z-20">
+                                        {h}% Growth
                                     </div>
                                 </div>
                             ))}
                         </div>
                         <div className="flex justify-between mt-8 px-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] border-t border-slate-50 pt-8">
-                            <span>Jan</span><span>Mar</span><span>May</span><span>Jul</span><span>Sep</span><span>Nov</span>
+                            {timeframe === '1W' ? (
+                                <><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></>
+                            ) : (
+                                <><span>Jan</span><span>Mar</span><span>May</span><span>Jul</span><span>Sep</span><span>Nov</span></>
+                            )}
                         </div>
                     </div>
 
@@ -96,22 +114,28 @@ export default function AnalyticsPage() {
                         <div>
                             <h3 className="text-xl font-black uppercase tracking-tight text-slate-900 mb-12">Sector Map</h3>
                             <div className="space-y-10">
-                                {[
-                                    { name: 'Artificial Intelligence', val: 42, color: 'bg-[#3d522b]' },
-                                    { name: 'Fintech / Web3', val: 28, color: 'bg-amber-500' },
-                                    { name: 'SaaS / Enterprise', val: 18, color: 'bg-blue-600' },
-                                    { name: 'Healthtech', val: 12, color: 'bg-teal-600' },
-                                ].map((item, i) => (
-                                    <div key={i} className="group">
-                                        <div className="flex justify-between text-[10px] font-black uppercase tracking-[0.2em] mb-4">
-                                            <span className="text-slate-500 group-hover:text-[#3d522b] transition-colors">{item.name}</span>
-                                            <span className="text-slate-900">{item.val}%</span>
+                                {(Array.isArray(stats?.sectorMap) && stats.sectorMap.length > 0
+                                    ? stats.sectorMap
+                                    : [
+                                        { name: 'Artificial Intelligence', val: 42, color: 'bg-[#3d522b]' },
+                                        { name: 'Fintech / Web3', val: 28, color: 'bg-amber-500' },
+                                        { name: 'SaaS / Enterprise', val: 18, color: 'bg-blue-600' },
+                                        { name: 'Healthtech', val: 12, color: 'bg-teal-600' },
+                                    ]
+                                ).map((item: any, i: number) => {
+                                    const colors = ['bg-[#3d522b]', 'bg-amber-500', 'bg-blue-600', 'bg-teal-600', 'bg-purple-600'];
+                                    return (
+                                        <div key={i} className="group">
+                                            <div className="flex justify-between text-[10px] font-black uppercase tracking-[0.2em] mb-4">
+                                                <span className="text-slate-500 group-hover:text-[#3d522b] transition-colors">{item.name}</span>
+                                                <span className="text-slate-900">{item.val}%</span>
+                                            </div>
+                                            <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                                                <div className={`h-full ${item.color || colors[i % colors.length]} shadow-sm group-hover:opacity-80 transition-opacity`} style={{ width: `${item.val}%` }}></div>
+                                            </div>
                                         </div>
-                                        <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                                            <div className={`h-full ${item.color} shadow-sm group-hover:opacity-80 transition-opacity`} style={{ width: `${item.val}%` }}></div>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 

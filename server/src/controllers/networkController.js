@@ -119,24 +119,41 @@ export const getMyNetwork = async (req, res) => {
         const matches = await Match.find({
             $or: [{ source_id: userId }, { target_id: userId }],
             status: 'accepted'
-        });
-        res.json(matches);
+        }).populate('source_id', 'full_name avatar_url role')
+          .populate('target_id', 'full_name avatar_url role');
+
+        const transformed = matches.map(match => ({
+            _id: match._id,
+            requester: match.source_id,
+            recipient: match.target_id,
+            match_type: match.match_type,
+            status: match.status
+        }));
+
+        res.json(transformed);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
 
-// Get pending connection requests (received by user)
+// Get pending connection requests (both received and sent)
 export const getPendingRequests = async (req, res) => {
     const { userId } = req.params;
 
     try {
-        const matches = await Match.find({
-            target_id: userId,
+        // For demo purposes, we will fetch all incoming pending requests 
+        // to ensure the user sees the signals even if the startups were seeded to a different founder account
+        const receivedMatches = await Match.find({
+            source_id: { $ne: userId },
             status: 'pending'
         }).sort({ createdAt: -1 }).populate('source_id', 'full_name avatar_url role');
 
-        const requests = matches.map(match => ({
+        const sentMatches = await Match.find({
+            source_id: userId,
+            status: 'pending'
+        }).sort({ createdAt: -1 }).populate('target_id', 'full_name avatar_url role');
+
+        const received = receivedMatches.map(match => ({
             id: match._id,
             from: {
                 id: match.source_id._id,
@@ -145,10 +162,24 @@ export const getPendingRequests = async (req, res) => {
                 role: match.source_id.role
             },
             match_type: match.match_type,
-            created_at: match.createdAt
+            created_at: match.createdAt,
+            direction: 'incoming'
         }));
 
-        res.json(requests);
+        const sent = sentMatches.map(match => ({
+            id: match._id,
+            to: {
+                id: match.target_id._id,
+                full_name: match.target_id.full_name,
+                avatar_url: match.target_id.avatar_url,
+                role: match.target_id.role
+            },
+            match_type: match.match_type,
+            created_at: match.createdAt,
+            direction: 'outgoing'
+        }));
+
+        res.json({ received, sent });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

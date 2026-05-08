@@ -1,9 +1,19 @@
-import React from 'react';
+"use client";
+import React, { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/auth';
 import Button from '@/components/ui/Button';
 import { Rocket, TrendingUp, Users, Zap, ArrowRight, Shield, Globe, Sparkles, Building2, Target } from 'lucide-react';
 
 export default function Home() {
+    const router = useRouter();
+
+    useEffect(() => {
+        if (auth.getUser()) {
+            router.push('/dashboard');
+        }
+    }, [router]);
     return (
         <div className="bg-[#f8faf7] min-h-screen text-slate-900 font-sans selection:bg-[#3d522b]/20">
             {/* Hero Section */}
